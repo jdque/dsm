@@ -1,0 +1,10 @@
+Add external supports and forces
+Create graph from JSON
+FEM
+Grid
+
+Scalable coordinates
+Material properties and external force setters
+Delete function
+Determine structural stability
+Group selection/movement
