@@ -42,8 +42,8 @@ NodeCircle.prototype.updateExternals = function () {
 
 NodeCircle.prototype.snapToGrid = function (spacing) {
 	this.set({
-		left: Math.round(this.left / spacing) * spacing - this.width / 2,
-		top: Math.round(this.top / spacing) * spacing - this.height / 2
+		left: Math.round((this.left + this.width / 2) / spacing) * spacing - this.width / 2,
+		top: Math.round((this.top + this.height / 2) / spacing) * spacing - this.height / 2
 	});
 }
 
