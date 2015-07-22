@@ -1,16 +1,8 @@
 (function () {
 
-var Selection = {
-	NONE: 0,
-	ACTIVE: 1,
-	CLEARED: 2
-};
-
 var canvas;
 var origin = [0, 0];
 var activeState = null;
-var selectStatus = Selection.NONE;	
-var selectedObject = null;
 
 var graph;
 
@@ -159,22 +151,14 @@ function SelectionState() {
 }
 
 SelectionState.prototype.activate = function () {
-	if (selectedObject) {
-		selectStatus = Selection.ACTIVE;
-	}
-	else {
-		selectStatus = Selection.NONE;
-	}
-
 	canvas.on("object:selected", function (e) {
-		selectStatus = Selection.ACTIVE;
-		selectedObject = e.target;
 	}.bind(this));
 
 	canvas.on("object:moving", function (e) {
 		if (e.target instanceof NodeCircle) {
 			e.target.snapToGrid(32);
 
+			var selectedObject = canvas.getActiveObject();
 			var node = graph.getGraphObject(selectedObject);
 			node.position[0] = selectedObject.getCenterPoint().x;
 			node.position[1] = origin[1] - selectedObject.getCenterPoint().y;
@@ -195,14 +179,9 @@ SelectionState.prototype.activate = function () {
 	}.bind(this));
 
 	canvas.on("selection:cleared", function (e) {
-		selectStatus = Selection.CLEARED;
-		selectedObject = null;
 	}.bind(this));
 
 	canvas.on("mouse:up", function (e) {
-		if (selectStatus === Selection.CLEARED) {
-			selectStatus = Selection.NONE;
-		}
 	}.bind(this));
 
 	canvas.on("mouse:move", function (e) {
@@ -256,27 +235,29 @@ function AddLinkState() {
 }
 
 AddLinkState.prototype.activate = function () {
-	this.activeLine = new fabric.Line([selectedObject.getCenterPoint().x, selectedObject.getCenterPoint().y, selectedObject.getCenterPoint().x, selectedObject.getCenterPoint().y],
-					Style.Link);
-	canvas.add(this.activeLine);
-	this.activeLine.sendToBack();
-
+	var selectedObject = canvas.getActiveObject();
+	var line = new fabric.Line(
+				[selectedObject.getCenterPoint().x, selectedObject.getCenterPoint().y, 
+				 selectedObject.getCenterPoint().x, selectedObject.getCenterPoint().y],
+				Style.Link);
+	canvas.add(line);
+	line.sendToBack();
+	
+	this.activeLine = line;
 	this.startNodeCircle = selectedObject;
 
 	canvas.on("object:selected", function (e) {
-		selectedObject = e.target;
 	}.bind(this));
 
 	canvas.on("object:moving", function (e) {
 	}.bind(this));
 
 	canvas.on("selection:cleared", function (e) {
-		selectedObject = null;
 	}.bind(this));
 
 	canvas.on("mouse:up", function (e) {
 		var fromNode = graph.getGraphObject(this.startNodeCircle);
-		var toNode = graph.getGraphObject(selectedObject);
+		var toNode = graph.getGraphObject(canvas.getActiveObject());
 
 		var mat = new Material({id: "steel", elasticMod: 4});
 		graph.addMaterial(mat);
@@ -322,12 +303,14 @@ function initialize() {
 	}
 
 	document.getElementById("line-button").onclick = function () {
+		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
 			setState(new AddLinkState());
 		}
 	}
 
 	document.getElementById("pin-button").onclick = function () {
+		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
 			var node = graph.getGraphObject(selectedObject);
 			node.constraint = ['fixed', 'fixed'];
@@ -336,6 +319,7 @@ function initialize() {
 	}
 
 	document.getElementById("roller-button").onclick = function () {
+		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
 			var node = graph.getGraphObject(selectedObject);
 			node.constraint = ['free', 'fixed'];
@@ -344,6 +328,7 @@ function initialize() {
 	}
 
 	document.getElementById("force-button").onclick = function () {
+		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
 			var node = graph.getGraphObject(selectedObject);
 			node.force = [0, -20];
