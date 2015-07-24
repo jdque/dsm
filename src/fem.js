@@ -3,37 +3,14 @@
 var canvas;
 var origin = [0, 0];
 var activeState = null;
-
 var graph;
+var graphRenderer;
+var gridRenderer;
 
 function NodeCircle(settings) {
-	fabric.Circle.call(this, settings);
+	fabric.Circle.apply(this, [settings]);
 
 	this.externals = [];
-
-	this.on("moving", function (e) {
-		this.snapToGrid(32);
-		this.updateExternals();
-
-		//Update graph node position
-		var node = graph.getGraphObject(this);
-		node.position[0] = this.getCenterPoint().x;
-		node.position[1] = origin[1] - this.getCenterPoint().y;
-
-		//Redraw links that are connected to the node
-		var links = graph.getLinks(node);
-		links.forEach(function (link) {
-			var line = graph.getRenderObject(link);
-			line.set({
-				x1: graph.getRenderObject(link.source).getCenterPoint().x,
-				y1: graph.getRenderObject(link.source).getCenterPoint().y,
-				x2: graph.getRenderObject(link.target).getCenterPoint().x,
-				y2: graph.getRenderObject(link.target).getCenterPoint().y
-			});
-			line.setCoords();
-		});
-		canvas.renderAll();
-	}.bind(this));
 }
 
 NodeCircle.prototype = Object.create(fabric.Circle.prototype);
@@ -56,39 +33,146 @@ NodeCircle.prototype.updateExternals = function () {
 	}.bind(this));
 }
 
-NodeCircle.prototype.snapToGrid = function (spacing) {
-	this.set({
-		left: Math.round((this.left + this.width / 2) / spacing) * spacing - this.width / 2,
-		top: Math.round((this.top + this.height / 2) / spacing) * spacing - this.height / 2
-	});
+function GraphRenderer(graph, canvas, origin) {
+	this.graph = graph;
+	this.canvas = canvas;
+	this.origin = origin;
+	this.nodeMap = {};
+	this.linkMap = {};
 }
 
-function drawFromGraph(fromGraph) {
-	fromGraph.nodes.forEach(function (node) {
-		var nodeCircle = drawNode(node.position[0], origin[1] - node.position[1]);
+GraphRenderer.prototype.draw = function () {
+	this.addGraph(graph);
+}
 
-		//Supports
-		if (node.constraint[0] === 'fixed' && node.constraint[1] === 'fixed') {
-			drawPinSupport(nodeCircle);
-		}
-		else if (node.constraint[0] === 'free' && node.constraint[1] === 'fixed') {
-			drawRollerSupport(nodeCircle);
-		}
+GraphRenderer.prototype.addNode = function (node) {
+	var nodeCircle = drawNode(node.position[0], this.origin[1] - node.position[1]);
+	nodeCircle.on("moving", function (e) {
+		gridRenderer.snapObject(nodeCircle, "center");
+		nodeCircle.updateExternals();
 
-		//Forces
-		if (node.force[1] !== 0) {
-			drawForce(nodeCircle);
-		}
+		//Update graph node position
+		node.position[0] = nodeCircle.getCenterPoint().x;
+		node.position[1] = this.origin[1] - nodeCircle.getCenterPoint().y;
 
-		graph.associate(nodeCircle, node);
+		//Redraw links that are connected to the node
+		var links = this.graph.getLinks(node);
+		links.forEach(function (link) {
+			var line = this.linkMap[link['id']];
+			var sourceRenderNode = this.nodeMap[link.source['id']];
+			var targetRenderNode = this.nodeMap[link.target['id']];
+			line.set({
+				x1: sourceRenderNode.getCenterPoint().x,
+				y1: sourceRenderNode.getCenterPoint().y,
+				x2: targetRenderNode.getCenterPoint().x,
+				y2: targetRenderNode.getCenterPoint().y
+			});
+			line.setCoords();
+		}.bind(this));
+		canvas.renderAll();
+	}.bind(this));
+
+	//Supports
+	if (node.constraint[0] === 'fixed' && node.constraint[1] === 'fixed') {
+		drawPinSupport(nodeCircle);
+	}
+	else if (node.constraint[0] === 'free' && node.constraint[1] === 'fixed') {
+		drawRollerSupport(nodeCircle);
+	}
+
+	//Forces
+	if (node.force[1] !== 0) {
+		drawForce(nodeCircle);
+	}
+
+	this._associateNode(node, nodeCircle);
+}
+
+GraphRenderer.prototype.addLink = function (link) {
+	var fromNode = this.nodeMap[link.source['id']];
+	var toNode = this.nodeMap[link.target['id']];
+	var linkLine = drawLink(fromNode, toNode);
+
+	this._associateLink(link, linkLine);
+}
+
+GraphRenderer.prototype.addGraph = function (graph) {
+	graph.nodes.forEach(function (node) {
+		this.addNode(node);
+	}.bind(this));
+
+	graph.links.forEach(function (link) {
+		this.addLink(link);
+	}.bind(this));
+}
+
+GraphRenderer.prototype.getGraphNode = function (renderNode) {
+	return renderNode._graphNode;
+}
+
+GraphRenderer.prototype.getGraphLink = function (renderLink) {
+	return renderLink._graphLink;
+}
+
+GraphRenderer.prototype._associateNode = function (node, renderObject) {
+	this.nodeMap[node['id']] = renderObject;
+	renderObject._graphNode = node;
+}
+
+GraphRenderer.prototype._associateLink = function (link, renderObject) {
+	this.linkMap[link['id']] = renderObject;
+	renderObject._graphLink = link;
+}
+
+function GridRenderer(canvas) {
+	this.canvas = canvas;
+	this.lines = [];
+	this.xSpacing = 32;
+	this.ySpacing = 32;
+}
+
+GridRenderer.prototype.draw = function (xSpacing, ySpacing) {
+	this.xSpacing = xSpacing;
+	this.ySpacing = ySpacing;
+
+	for (var y = 0; y < this.canvas.height; y += ySpacing) {
+		var line = new fabric.Line([0, y, this.canvas.width, y], Style.GridLine);
+		this.canvas.add(line);
+		line.sendToBack();
+		this.lines.push(line);
+	}
+
+	for (var x = 0; x < this.canvas.width; x += xSpacing) {
+		var line = new fabric.Line([x, 0, x, this.canvas.height], Style.GridLine);
+		this.canvas.add(line);
+		line.sendToBack();
+		this.lines.push(line);
+	}
+}
+
+GridRenderer.prototype.clear = function () {
+	this.lines.forEach(function (line) {
+		line.remove();
 	});
+	this.lines = [];
+}
 
-	fromGraph.links.forEach(function (link) {
-		var fromNode = graph.getRenderObject(link.source);
-		var toNode = graph.getRenderObject(link.target);
-		var linkLine = drawLink(fromNode, toNode);
+GridRenderer.prototype.snapObject = function (object, anchor) {
+	var left;
+	var top;
 
-		graph.associate(linkLine, link);
+	if (anchor === "center") {
+		left = Math.round((object.left + object.width / 2) / this.xSpacing) * this.xSpacing - object.width / 2;
+		top = Math.round((object.top + object.height / 2) / this.ySpacing) * this.ySpacing - object.height / 2;
+	}
+	else {
+		left = Math.round(object.left / this.xSpacing) * this.xSpacing;
+		top = Math.round(object.top / this.ySpacing) * this.ySpacing;
+	}
+
+	object.set({
+		left: left, 
+		top: top
 	});
 }
 
@@ -153,13 +237,6 @@ function drawForce(nodeCircle) {
 }
 
 function drawGrid(spacing) {
-	for (var y = 0; y < canvas.height; y += spacing) {
-		canvas.add(new fabric.Line([0, y, canvas.width, y], Style.GridLine));
-	}
-	
-	for (var x = 0; x < canvas.width; x += spacing) {
-		canvas.add(new fabric.Line([x, 0, x, canvas.height], Style.GridLine));
-	}
 }
 
 function setState(state) {
@@ -218,19 +295,18 @@ AddNodeState.prototype.activate = function () {
 			left: e.e.x - 20,
 			top: e.e.y - 20
 		});
-		this.activeNode.snapToGrid(32);
+		gridRenderer.snapObject(this.activeNode, "center");
 		canvas.renderAll();
 	}.bind(this));
 }
 
 AddNodeState.prototype.createNewNode = function () {
 	var node = new Node({
-		position: [this.activeNode.getCenterPoint().x, origin[1] - this.activeNode.getCenterPoint().y]
+		id: Math.round(Math.random(1) * 100000),
+		position: [this.activeNode.getCenterPoint().x + 10, origin[1] - this.activeNode.getCenterPoint().y - 10]
 	});
 	graph.addNode(node);
-
-	var nodeCircle = drawNode(this.activeNode.getCenterPoint().x + 10, this.activeNode.getCenterPoint().y + 10);
-	graph.associate(nodeCircle, node);
+	graphRenderer.addNode(node);
 }
 
 function AddLinkState() {
@@ -286,8 +362,8 @@ AddLinkState.prototype.createNewLink = function () {
 	var sec = new Section({id: "spar", area: 100});
 	graph.addSection(sec);
 
-	var fromNode = graph.getGraphObject(this.startNodeCircle);
-	var toNode = graph.getGraphObject(canvas.getActiveObject());
+	var fromNode = graphRenderer.getGraphNode(this.startNodeCircle);
+	var toNode = graphRenderer.getGraphNode(canvas.getActiveObject());
 	var link = new Link({
 		id: Math.round(Math.random(1) * 100000),
 		source: fromNode,
@@ -296,9 +372,7 @@ AddLinkState.prototype.createNewLink = function () {
 		section: sec
 	});
 	graph.addLink(link);
-	
-	var linkLine = drawLink(this.startNodeCircle, canvas.getActiveObject());
-	graph.associate(linkLine, link);
+	graphRenderer.addLink(link);
 }
 
 function initialize() {
@@ -322,7 +396,7 @@ function initialize() {
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
-			var node = graph.getGraphObject(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject);
 			node.constraint = ['fixed', 'fixed'];
 			drawPinSupport(selectedObject);
 		}
@@ -331,7 +405,7 @@ function initialize() {
 	document.getElementById("roller-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
-			var node = graph.getGraphObject(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject);
 			node.constraint = ['free', 'fixed'];
 			drawRollerSupport(selectedObject);
 		}	
@@ -340,7 +414,7 @@ function initialize() {
 	document.getElementById("force-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
 		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
-			var node = graph.getGraphObject(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject);
 			node.force = [0, -20];
 			drawForce(selectedObject);
 		}
@@ -350,11 +424,15 @@ function initialize() {
 		Solver.solve(graph);
 	}
 
-	drawGrid(32);
 	origin = [0, canvas.height];
-	//graph = Graph.fromJSON(test);
-	//drawFromGraph(graph);
-	graph = new Graph();
+	graph = Graph.fromJSON(test);
+	//graph = new Graph();
+
+	gridRenderer = new GridRenderer(canvas);
+	gridRenderer.draw(32, 32);
+
+	graphRenderer = new GraphRenderer(graph, canvas, origin);
+	graphRenderer.draw();
 
 	setState(new SelectionState());
 }

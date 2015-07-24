@@ -143,19 +143,6 @@ Graph.prototype.findSectionById = function (id) {
 	return this.findById(this.sections, id);
 }
 
-Graph.prototype.associate = function (renderObject, graphObject) {
-	renderObject.__graphObject = graphObject;
-	graphObject.__renderObject = renderObject;
-}
-
-Graph.prototype.getGraphObject = function (renderObject) {
-	return renderObject.__graphObject;
-}
-
-Graph.prototype.getRenderObject = function (graphObject) {
-	return graphObject.__renderObject;
-}
-
 var test = {
 	nodes: [
 		{
