@@ -96,6 +96,37 @@ Graph.prototype.addSection = function (section) {
 	this.sections.push(section);
 }
 
+Graph.prototype.removeNode = function (node) {
+	var links = this.getLinks(node);
+	links.forEach(function (link) {
+		this.removeLink(link);
+	});
+
+	this.nodes.splice(this.nodes.indexOf(node), 1);
+}
+
+Graph.prototype.removeLink = function (link) {
+	this.links.splice(this.links.indexOf(link), 1);
+}
+
+Graph.prototype.removeMaterial = function (material) {
+	this.links.forEach(function (link) {
+		if (link['material'] === material['id'])
+			link['material'] = null;
+	});
+
+	this.materials.splice(this.materials.indexOf(material), 1);
+}
+
+Graph.prototype.removeSection = function (section) {
+	this.links.forEach(function (link) {
+		if (link['section'] === section['id'])
+			link['section'] = null;
+	});
+
+	this.sections.splice(this.sections.indexOf(section), 1);
+}
+
 Graph.prototype.getInLinks = function (node) {
 	var inLinks = this.links.filter(function (link) {
 		return link.target === node;
@@ -120,7 +151,7 @@ Graph.prototype.getLinks = function (node) {
 	return links;
 }
 
-Graph.prototype.findById = function (list, id) {
+Graph.prototype._findById = function (list, id) {
 	var foundItems = list.filter(function (item) {
 		return item.id === id;
 	});
@@ -132,15 +163,15 @@ Graph.prototype.findById = function (list, id) {
 }
 
 Graph.prototype.findNodeById = function (id) {
-	return this.findById(this.nodes, id);
+	return this._findById(this.nodes, id);
 }
 
 Graph.prototype.findMaterialById = function (id) {
-	return this.findById(this.materials, id);
+	return this._findById(this.materials, id);
 }
 
 Graph.prototype.findSectionById = function (id) {
-	return this.findById(this.sections, id);
+	return this._findById(this.sections, id);
 }
 
 var test = {

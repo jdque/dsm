@@ -33,6 +33,15 @@ NodeCircle.prototype.updateExternals = function () {
 	}.bind(this));
 }
 
+NodeCircle.prototype.remove = function () {
+	this.externals.forEach(function (external) {
+		external.object.canvas.remove(external.object);
+	});
+	this.externals = null;
+
+	fabric.Circle.prototype.remove.call(this);
+}
+
 function GraphRenderer(canvas, graph, origin) {
 	this.graph = graph;
 	this.canvas = canvas;
@@ -42,7 +51,13 @@ function GraphRenderer(canvas, graph, origin) {
 }
 
 GraphRenderer.prototype.draw = function () {
-	this.addGraph(graph);
+	this.graph.nodes.forEach(function (node) {
+		this.addNode(node);
+	}.bind(this));
+
+	this.graph.links.forEach(function (link) {
+		this.addLink(link);
+	}.bind(this));
 }
 
 GraphRenderer.prototype.addNode = function (node) {
@@ -96,14 +111,19 @@ GraphRenderer.prototype.addLink = function (link) {
 	this._associateLink(link, linkLine);
 }
 
-GraphRenderer.prototype.addGraph = function (graph) {
-	graph.nodes.forEach(function (node) {
-		this.addNode(node);
+GraphRenderer.prototype.removeNode = function (node) {
+	var links = this.graph.getLinks(node);
+	links.forEach(function (link) {
+		this.removeLink(link);	
 	}.bind(this));
 
-	graph.links.forEach(function (link) {
-		this.addLink(link);
-	}.bind(this));
+	this.nodeMap[node['id']].remove();
+	this.graph.removeNode(node);
+}
+
+GraphRenderer.prototype.removeLink = function (link) {
+	this.linkMap[link['id']].remove();
+	this.graph.removeLink(link);
 }
 
 GraphRenderer.prototype.getGraphNode = function (renderNode) {
@@ -418,6 +438,19 @@ function setupDOM() {
 	document.getElementById("solve-button").onclick = function () {
 		Solver.solve(graph);
 	}
+
+	var canvasWrapper = document.getElementById("canvas-wrapper");
+	canvasWrapper.addEventListener("keydown", function (e) {
+		var selectedObject = canvas.getActiveObject();
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+			if (e.keyCode === 46) {
+				var node = graphRenderer.getGraphNode(selectedObject);
+				graphRenderer.removeNode(node);
+			}
+		} 
+	}, false);
+	canvasWrapper.tabIndex = 1;
+	canvasWrapper.focus();
 }
 
 function initialize() {
