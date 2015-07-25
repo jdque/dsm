@@ -1,8 +1,8 @@
 (function () {
 
+var appState;
 var canvas;
-var origin = [0, 0];
-var activeState = null;
+var origin;
 var graph;
 var graphRenderer;
 var gridRenderer;
@@ -33,7 +33,7 @@ NodeCircle.prototype.updateExternals = function () {
 	}.bind(this));
 }
 
-function GraphRenderer(graph, canvas, origin) {
+function GraphRenderer(canvas, graph, origin) {
 	this.graph = graph;
 	this.canvas = canvas;
 	this.origin = origin;
@@ -236,19 +236,27 @@ function drawForce(nodeCircle) {
 	nodeCircle.addExternal(group, -16, -(nodeCircle.height / 2 + 72));
 }
 
-function drawGrid(spacing) {
+function StateManager(canvas) {
+	this.canvas = canvas;
+	this.stateMap = {};
+	this.activeStateId = null;
 }
 
-function setState(state) {
-	canvas.off();
-	activeState = state;
-	state.activate();
+StateManager.prototype.addState = function (id, object) {
+	this.stateMap[id] = object;
 }
 
-function SelectionState() {
+StateManager.prototype.setState = function (stateId) {
+	this.canvas.off();
+	this.activeStateId = stateId;
+	this.stateMap[stateId](this);
 }
 
-SelectionState.prototype.activate = function () {
+StateManager.prototype.getActiveStateId = function () {
+	return this.activeStateId;
+}
+
+function selectionState() {
 	canvas.on("object:selected", function (e) {
 	}.bind(this));
 
@@ -263,13 +271,9 @@ SelectionState.prototype.activate = function () {
 
 	canvas.on("mouse:move", function (e) {
 	}.bind(this));
-}
+};
 
-function AddNodeState() {
-	this.activeNode = null;
-}
-
-AddNodeState.prototype.activate = function () {
+function addNodeState() {
 	this.activeNode = new NodeCircle(Style.Node);
 	canvas.add(this.activeNode);
 
@@ -287,7 +291,7 @@ AddNodeState.prototype.activate = function () {
 		this.activeNode.remove();
 		this.activeNode = null;
 
-		setState(new SelectionState());
+		appState.setState('selection');
 	}.bind(this));
 
 	canvas.on("mouse:move", function (e) {
@@ -298,23 +302,18 @@ AddNodeState.prototype.activate = function () {
 		gridRenderer.snapObject(this.activeNode, "center");
 		canvas.renderAll();
 	}.bind(this));
-}
 
-AddNodeState.prototype.createNewNode = function () {
-	var node = new Node({
-		id: Math.round(Math.random(1) * 100000),
-		position: [this.activeNode.getCenterPoint().x + 10, origin[1] - this.activeNode.getCenterPoint().y - 10]
-	});
-	graph.addNode(node);
-	graphRenderer.addNode(node);
-}
+	this.createNewNode = function () {
+		var node = new Node({
+			id: Math.round(Math.random(1) * 100000),
+			position: [this.activeNode.getCenterPoint().x + 10, origin[1] - this.activeNode.getCenterPoint().y - 10]
+		});
+		graph.addNode(node);
+		graphRenderer.addNode(node);
+	}.bind(this);
+};
 
-function AddLinkState() {
-	this.activeLine = null;
-	this.startNodeCircle = null;
-}
-
-AddLinkState.prototype.activate = function () {
+function addLinkState() {
 	var selectedObject = canvas.getActiveObject();
 	var line = new fabric.Line(
 				[selectedObject.getCenterPoint().x, selectedObject.getCenterPoint().y, 
@@ -333,7 +332,7 @@ AddLinkState.prototype.activate = function () {
 			this.activeLine = null;
 			this.startNodeCircle = null;
 
-			setState(new SelectionState());
+			appState.setState('selection');
 		}
 	}.bind(this));
 
@@ -353,49 +352,45 @@ AddLinkState.prototype.activate = function () {
 			canvas.renderAll();
 		}
 	}.bind(this));
-}
 
-AddLinkState.prototype.createNewLink = function () {
-	var mat = new Material({id: "steel", elasticMod: 4});
-	graph.addMaterial(mat);
+	this.createNewLink = function () {
+		var mat = new Material({id: "steel", elasticMod: 4});
+		graph.addMaterial(mat);
 
-	var sec = new Section({id: "spar", area: 100});
-	graph.addSection(sec);
+		var sec = new Section({id: "spar", area: 100});
+		graph.addSection(sec);
 
-	var fromNode = graphRenderer.getGraphNode(this.startNodeCircle);
-	var toNode = graphRenderer.getGraphNode(canvas.getActiveObject());
-	var link = new Link({
-		id: Math.round(Math.random(1) * 100000),
-		source: fromNode,
-		target: toNode,
-		material: mat,
-		section: sec
-	});
-	graph.addLink(link);
-	graphRenderer.addLink(link);
-}
+		var fromNode = graphRenderer.getGraphNode(this.startNodeCircle);
+		var toNode = graphRenderer.getGraphNode(canvas.getActiveObject());
+		var link = new Link({
+			id: Math.round(Math.random(1) * 100000),
+			source: fromNode,
+			target: toNode,
+			material: mat,
+			section: sec
+		});
+		graph.addLink(link);
+		graphRenderer.addLink(link);
+	}.bind(this);
+};
 
-function initialize() {
-	canvas = new fabric.Canvas('stage');
-	canvas.setDimensions({width: 640, height: 480});
-	canvas.setBackgroundColor('rgba(255, 255, 255, 1.0)', canvas.renderAll.bind(canvas));
-
+function setupDOM() {
 	document.getElementById("node-button").onclick = function () {
-		if (activeState instanceof SelectionState) {
-			setState(new AddNodeState());
+		if (appState.getActiveStateId() === 'selection') {
+			appState.setState('add_node');
 		}
 	}
 
 	document.getElementById("line-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
-		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
-			setState(new AddLinkState());
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+			appState.setState('add_link');
 		}
 	}
 
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
-		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			node.constraint = ['fixed', 'fixed'];
 			drawPinSupport(selectedObject);
@@ -404,7 +399,7 @@ function initialize() {
 
 	document.getElementById("roller-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
-		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			node.constraint = ['free', 'fixed'];
 			drawRollerSupport(selectedObject);
@@ -413,7 +408,7 @@ function initialize() {
 
 	document.getElementById("force-button").onclick = function () {
 		var selectedObject = canvas.getActiveObject();
-		if (activeState instanceof SelectionState && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			node.force = [0, -20];
 			drawForce(selectedObject);
@@ -423,6 +418,14 @@ function initialize() {
 	document.getElementById("solve-button").onclick = function () {
 		Solver.solve(graph);
 	}
+}
+
+function initialize() {
+	setupDOM();
+
+	canvas = new fabric.Canvas('stage');
+	canvas.setDimensions({width: 640, height: 480});
+	canvas.setBackgroundColor('rgba(255, 255, 255, 1.0)', canvas.renderAll.bind(canvas));
 
 	origin = [0, canvas.height];
 	graph = Graph.fromJSON(test);
@@ -431,10 +434,15 @@ function initialize() {
 	gridRenderer = new GridRenderer(canvas);
 	gridRenderer.draw(32, 32);
 
-	graphRenderer = new GraphRenderer(graph, canvas, origin);
+	graphRenderer = new GraphRenderer(canvas, graph, origin);
 	graphRenderer.draw();
 
-	setState(new SelectionState());
+	appState = new StateManager(canvas);
+	appState.addState('selection', selectionState);
+	appState.addState('add_node', addNodeState);
+	appState.addState('add_link', addLinkState);
+
+	appState.setState('selection');
 }
 
 window.onload = initialize;
