@@ -11,6 +11,10 @@ function NodeCircle(settings) {
 	fabric.Circle.apply(this, [settings]);
 
 	this.externals = [];
+
+	this.on('moving', function (e) {
+		this.updateExternals();
+	}.bind(this));
 }
 
 NodeCircle.prototype = Object.create(fabric.Circle.prototype);
@@ -21,6 +25,13 @@ NodeCircle.prototype.addExternal = function (object, offsetX, offsetY) {
 		offsetX: offsetX,
 		offsetY: offsetY
 	});
+}
+
+NodeCircle.prototype.clearExternals = function () {
+	this.externals.forEach(function (external) {
+		external.object.canvas.remove(external.object);
+	});
+	this.externals = [];
 }
 
 NodeCircle.prototype.updateExternals = function () {
@@ -34,11 +45,7 @@ NodeCircle.prototype.updateExternals = function () {
 }
 
 NodeCircle.prototype.remove = function () {
-	this.externals.forEach(function (external) {
-		external.object.canvas.remove(external.object);
-	});
-	this.externals = null;
-
+	this.clearExternals();
 	fabric.Circle.prototype.remove.call(this);
 }
 
@@ -48,67 +55,93 @@ function GraphRenderer(canvas, graph, origin) {
 	this.origin = origin;
 	this.nodeMap = {};
 	this.linkMap = {};
+
+	this.graph.addListener(Graph.Event.ADD_NODE, this.addNode.bind(this));
+	this.graph.addListener(Graph.Event.ADD_LINK, this.addLink.bind(this));
+	this.graph.addListener(Graph.Event.REMOVE_NODE, this.removeNode.bind(this));
+	this.graph.addListener(Graph.Event.REMOVE_LINK, this.removeLink.bind(this));
+	this.graph.addListener(Graph.Event.UPDATE_NODE, this.updateNode.bind(this));
+	this.graph.addListener(Graph.Event.UPDATE_LINK, this.updateLink.bind(this));
 }
 
-GraphRenderer.prototype.draw = function () {
+GraphRenderer.prototype.redraw = function () {
+	//Remove rendered nodes/links that are no longer in the graph
+	//TODO - do set comparison so this is not O(n^2)
+	Object.keys(this.nodeMap).forEach(function (nodeId) {
+		if (this.graph.findNodeById(nodeId) === null) {
+			this.nodeMap[nodeId].remove();
+			delete this.nodeMap[nodeId];
+		}
+	}.bind(this));
+
+	Object.keys(this.linkMap).forEach(function (linkId) {
+		if (this.graph.findLinkById(linkId) === null) {
+			this.linkMap[linkId].remove();
+			delete this.linkMap[linkId];
+		}
+	}.bind(this));
+
+	//Add new graph nodes/links or update existing ones
 	this.graph.nodes.forEach(function (node) {
-		this.addNode(node);
+		if (this.nodeMap.hasOwnProperty(node['id'])) {
+			this.updateNode(node);
+		}
+		else {
+			this.addNode(node);
+		}
 	}.bind(this));
 
 	this.graph.links.forEach(function (link) {
-		this.addLink(link);
+		if (this.linkMap.hasOwnProperty(link['id'])) {
+			this.updateLink(link);
+		}
+		else {
+			this.addLink(link);
+		}
 	}.bind(this));
 }
 
 GraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = drawNode(node.position[0], this.origin[1] - node.position[1]);
 	nodeCircle.on("moving", function (e) {
-		gridRenderer.snapObject(nodeCircle, "center");
-		nodeCircle.updateExternals();
-
 		//Update graph node position
-		node.position[0] = nodeCircle.getCenterPoint().x;
-		node.position[1] = this.origin[1] - nodeCircle.getCenterPoint().y;
+		var x = nodeCircle.getCenterPoint().x;
+		var y = this.origin[1] - nodeCircle.getCenterPoint().y;
+		this.graph.updateNode(node, {position: [x, y]});
 
 		//Redraw links that are connected to the node
 		var links = this.graph.getLinks(node);
 		links.forEach(function (link) {
-			var line = this.linkMap[link['id']];
-			var sourceRenderNode = this.nodeMap[link.source['id']];
-			var targetRenderNode = this.nodeMap[link.target['id']];
-			line.set({
-				x1: sourceRenderNode.getCenterPoint().x,
-				y1: sourceRenderNode.getCenterPoint().y,
-				x2: targetRenderNode.getCenterPoint().x,
-				y2: targetRenderNode.getCenterPoint().y
-			});
-			line.setCoords();
+			this.updateLink(link);
 		}.bind(this));
-		canvas.renderAll();
 	}.bind(this));
-
-	//Supports
-	if (node.constraint[0] === 'fixed' && node.constraint[1] === 'fixed') {
-		drawPinSupport(nodeCircle);
-	}
-	else if (node.constraint[0] === 'free' && node.constraint[1] === 'fixed') {
-		drawRollerSupport(nodeCircle);
-	}
-
-	//Forces
-	if (node.force[1] !== 0) {
-		drawForce(nodeCircle);
-	}
-
 	this._associateNode(node, nodeCircle);
+
+	this.addNodeExternals(node);
 }
 
 GraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.nodeMap[link.source['id']];
 	var toNode = this.nodeMap[link.target['id']];
 	var linkLine = drawLink(fromNode, toNode);
-
 	this._associateLink(link, linkLine);
+}
+
+GraphRenderer.prototype.addNodeExternals = function (node) {
+	var renderNode = this.nodeMap[node['id']];
+
+	//Supports
+	if (node.constraint[0] === 'fixed' && node.constraint[1] === 'fixed') {
+		drawPinSupport(renderNode);
+	}
+	else if (node.constraint[0] === 'free' && node.constraint[1] === 'fixed') {
+		drawRollerSupport(renderNode);
+	}
+
+	//Forces
+	if (node.force[1] !== 0) {
+		drawForce(renderNode);
+	}
 }
 
 GraphRenderer.prototype.removeNode = function (node) {
@@ -118,12 +151,47 @@ GraphRenderer.prototype.removeNode = function (node) {
 	}.bind(this));
 
 	this.nodeMap[node['id']].remove();
-	this.graph.removeNode(node);
+	this._unassociateNode(node);
 }
 
 GraphRenderer.prototype.removeLink = function (link) {
 	this.linkMap[link['id']].remove();
-	this.graph.removeLink(link);
+	this._unassociateLink(link);
+}
+
+GraphRenderer.prototype.removeNodeExternals = function (node) {
+	var renderNode = this.nodeMap[node['id']];
+	renderNode.clearExternals();
+}
+
+GraphRenderer.prototype.updateNode = function (node) {
+	var renderNode = this.nodeMap[node['id']];
+
+	//Position
+	renderNode.set({
+		left: node.position[0] - 10,
+		top: this.origin[1] - node.position[1] - 10
+	});
+
+	//TODO - Modify existing externals instead of replacing them
+	this.removeNodeExternals(node);
+	this.addNodeExternals(node);
+}
+
+GraphRenderer.prototype.updateLink = function (link) {
+	//Position
+	var line = this.linkMap[link['id']];
+	var sourceRenderNode = this.nodeMap[link.source['id']];
+	var targetRenderNode = this.nodeMap[link.target['id']];
+	line.set({
+		x1: sourceRenderNode.getCenterPoint().x,
+		y1: sourceRenderNode.getCenterPoint().y,
+		x2: targetRenderNode.getCenterPoint().x,
+		y2: targetRenderNode.getCenterPoint().y
+	});
+	line.setCoords();
+
+	canvas.renderAll();
 }
 
 GraphRenderer.prototype.getGraphNode = function (renderNode) {
@@ -144,6 +212,14 @@ GraphRenderer.prototype._associateLink = function (link, renderObject) {
 	renderObject._graphLink = link;
 }
 
+GraphRenderer.prototype._unassociateNode = function (node) {
+	delete this.nodeMap[node['id']];
+}
+
+GraphRenderer.prototype._unassociateLink = function (link) {
+	delete this.linkMap[link['id']];
+}
+
 function GridRenderer(canvas) {
 	this.canvas = canvas;
 	this.lines = [];
@@ -151,18 +227,22 @@ function GridRenderer(canvas) {
 	this.ySpacing = 32;
 }
 
-GridRenderer.prototype.draw = function (xSpacing, ySpacing) {
+GridRenderer.prototype.setSpacing = function (xSpacing, ySpacing) {
 	this.xSpacing = xSpacing;
 	this.ySpacing = ySpacing;
+}
 
-	for (var y = 0; y < this.canvas.height; y += ySpacing) {
+GridRenderer.prototype.redraw = function () {
+	this.clear();
+
+	for (var y = 0; y < this.canvas.height; y += this.ySpacing) {
 		var line = new fabric.Line([0, y, this.canvas.width, y], Style.GridLine);
 		this.canvas.add(line);
 		line.sendToBack();
 		this.lines.push(line);
 	}
 
-	for (var x = 0; x < this.canvas.width; x += xSpacing) {
+	for (var x = 0; x < this.canvas.width; x += this.xSpacing) {
 		var line = new fabric.Line([x, 0, x, this.canvas.height], Style.GridLine);
 		this.canvas.add(line);
 		line.sendToBack();
@@ -199,8 +279,8 @@ GridRenderer.prototype.snapObject = function (object, anchor) {
 function drawNode(canvasX, canvasY) {
 	var circle = new NodeCircle(Style.Node);
 	circle.set({
-		left: canvasX - 20,
-		top: canvasY - 20
+		left: canvasX - 10,
+		top: canvasY - 10
 	});
 	canvas.add(circle);
 
@@ -281,6 +361,10 @@ function selectionState() {
 	}.bind(this));
 
 	canvas.on("object:moving", function (e) {
+		var selectedObject = canvas.getActiveObject();
+		if (selectedObject instanceof NodeCircle) {
+			gridRenderer.snapObject(selectedObject, "center");
+		}
 	}.bind(this));
 
 	canvas.on("selection:cleared", function (e) {
@@ -326,10 +410,9 @@ function addNodeState() {
 	this.createNewNode = function () {
 		var node = new Node({
 			id: Math.round(Math.random(1) * 100000),
-			position: [this.activeNode.getCenterPoint().x + 10, origin[1] - this.activeNode.getCenterPoint().y - 10]
+			position: [this.activeNode.getCenterPoint().x, origin[1] - this.activeNode.getCenterPoint().y]
 		});
 		graph.addNode(node);
-		graphRenderer.addNode(node);
 	}.bind(this);
 };
 
@@ -390,7 +473,6 @@ function addLinkState() {
 			section: sec
 		});
 		graph.addLink(link);
-		graphRenderer.addLink(link);
 	}.bind(this);
 };
 
@@ -412,8 +494,7 @@ function setupDOM() {
 		var selectedObject = canvas.getActiveObject();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			node.constraint = ['fixed', 'fixed'];
-			drawPinSupport(selectedObject);
+			graph.updateNode(node, {constraint: ['fixed', 'fixed']});
 		}
 	}
 
@@ -421,8 +502,7 @@ function setupDOM() {
 		var selectedObject = canvas.getActiveObject();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			node.constraint = ['free', 'fixed'];
-			drawRollerSupport(selectedObject);
+			graph.updateNode(node, {constraint: ['free', 'fixed']});
 		}	
 	}
 
@@ -430,8 +510,7 @@ function setupDOM() {
 		var selectedObject = canvas.getActiveObject();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			node.force = [0, -20];
-			drawForce(selectedObject);
+			graph.updateNode(node, {force: [0, -20]});
 		}
 	}
 
@@ -445,9 +524,9 @@ function setupDOM() {
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			if (e.keyCode === 46) {
 				var node = graphRenderer.getGraphNode(selectedObject);
-				graphRenderer.removeNode(node);
+				graph.removeNode(node);
 			}
-		} 
+		}
 	}, false);
 	canvasWrapper.tabIndex = 1;
 	canvasWrapper.focus();
@@ -461,14 +540,15 @@ function initialize() {
 	canvas.setBackgroundColor('rgba(255, 255, 255, 1.0)', canvas.renderAll.bind(canvas));
 
 	origin = [0, canvas.height];
-	graph = Graph.fromJSON(test);
 	//graph = new Graph();
+	graph = Graph.fromJSON(test);
 
 	gridRenderer = new GridRenderer(canvas);
-	gridRenderer.draw(32, 32);
+	gridRenderer.setSpacing(32, 32);
+	gridRenderer.redraw();
 
 	graphRenderer = new GraphRenderer(canvas, graph, origin);
-	graphRenderer.draw();
+	graphRenderer.redraw();
 
 	appState = new StateManager(canvas);
 	appState.addState('selection', selectionState);

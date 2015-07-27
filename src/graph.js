@@ -28,7 +28,18 @@ function Graph() {
 	this.links = [];
 	this.materials = [];
 	this.sections = [];
+
+	this.notifier = new Notifier();
 }
+
+Graph.Event = {
+	ADD_NODE:    0,
+	ADD_LINK:    1,
+	REMOVE_NODE: 2,
+	REMOVE_LINK: 3,
+	UPDATE_NODE: 4,
+	UPDATE_LINK: 5
+};
 
 Graph.fromJSON = function (json) {
 	var graph = new Graph();
@@ -82,10 +93,12 @@ Graph.fromJSON = function (json) {
 
 Graph.prototype.addNode = function (node) {
 	this.nodes.push(node);
+	this.notifier.notify(Graph.Event.ADD_NODE, node);
 }
 
 Graph.prototype.addLink = function (link) {
 	this.links.push(link);
+	this.notifier.notify(Graph.Event.ADD_LINK, link);
 }
 
 Graph.prototype.addMaterial = function (material) {
@@ -100,13 +113,15 @@ Graph.prototype.removeNode = function (node) {
 	var links = this.getLinks(node);
 	links.forEach(function (link) {
 		this.removeLink(link);
-	});
+	}.bind(this));
 
 	this.nodes.splice(this.nodes.indexOf(node), 1);
+	this.notifier.notify(Graph.Event.REMOVE_NODE, node);
 }
 
 Graph.prototype.removeLink = function (link) {
 	this.links.splice(this.links.indexOf(link), 1);
+	this.notifier.notify(Graph.Event.REMOVE_LINK, link);
 }
 
 Graph.prototype.removeMaterial = function (material) {
@@ -125,6 +140,22 @@ Graph.prototype.removeSection = function (section) {
 	});
 
 	this.sections.splice(this.sections.indexOf(section), 1);
+}
+
+Graph.prototype.updateNode = function (node, properties) {
+	for (key in properties) {
+		node[key] = properties[key];
+	}
+
+	this.notifier.notify(Graph.Event.UPDATE_NODE, node);
+}
+
+Graph.prototype.updateLink = function (link, properties) {
+	for (key in properties) {
+		link[key] = properties[key];
+	}
+
+	this.notifier.notify(Graph.Event.UPDATE_LINK, link);
 }
 
 Graph.prototype.getInLinks = function (node) {
@@ -166,12 +197,54 @@ Graph.prototype.findNodeById = function (id) {
 	return this._findById(this.nodes, id);
 }
 
+Graph.prototype.findLinkById = function (id) {
+	return this._findById(this.links, id);
+}
+
 Graph.prototype.findMaterialById = function (id) {
 	return this._findById(this.materials, id);
 }
 
 Graph.prototype.findSectionById = function (id) {
 	return this._findById(this.sections, id);
+}
+
+Graph.prototype.addListener = function (type, func) {
+	this.notifier.addListener(type, func);
+}
+
+function Notifier() {
+	this.enabled = true;
+	this.listeners = {};
+}
+
+Notifier.prototype.addListener = function (type, func) {
+	if (!this.listeners.hasOwnProperty(type)) {
+		this.listeners[type] = [];
+	}
+
+	this.listeners[type].push(func);
+}
+
+Notifier.prototype.removeListener = function (type, func) {
+	if (!this.listeners.hasOwnProperty(type))
+		return;
+
+	this.listeners[type].splice(this.listeners[type].indexOf(func), 1);
+}
+
+Notifier.prototype.notify = function (type, data) {
+	if (!this.listeners.hasOwnProperty(type))
+		return;
+
+	this.listeners[type].forEach(function (listenerFunc) {
+		if (data instanceof Array) {
+			listenerFunc.apply(null, data);
+		}
+		else {
+			listenerFunc(data);
+		}
+	});
 }
 
 var test = {
