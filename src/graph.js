@@ -143,7 +143,7 @@ Graph.prototype.removeSection = function (section) {
 }
 
 Graph.prototype.updateNode = function (node, properties) {
-	for (key in properties) {
+	for (var key in properties) {
 		if (properties.hasOwnProperty(key)) {
 			node[key] = properties[key];
 		}
@@ -153,7 +153,7 @@ Graph.prototype.updateNode = function (node, properties) {
 }
 
 Graph.prototype.updateLink = function (link, properties) {
-	for (key in properties) {
+	for (var key in properties) {
 		if (properties.hasOwnProperty(key)) {
 			link[key] = properties[key];
 		}

@@ -7,45 +7,67 @@ var graph;
 var graphRenderer;
 var gridRenderer;
 
-function NodeCircle(settings) {
-	fabric.Circle.apply(this, [settings]);
-
-	this.externals = [];
-
-	this.on('moving', function (e) {
-		this.updateExternals();
-	}.bind(this));
+function extend(destination, source) {
+	for (var k in source) {
+		if (source.hasOwnProperty(k)) {
+			destination[k] = source[k];
+		}
+	}
+	return destination; 
 }
 
-NodeCircle.prototype = Object.create(fabric.Circle.prototype);
+function AttachmentContainer() {
+	this.attachments = [];
+}
 
-NodeCircle.prototype.addExternal = function (object, offsetX, offsetY) {
-	this.externals.push({
+AttachmentContainer.prototype.addAttachment = function (object, offsetX, offsetY) {
+	this.attachments.push({
 		object: object,
 		offsetX: offsetX,
 		offsetY: offsetY
 	});
 }
 
-NodeCircle.prototype.clearExternals = function () {
-	this.externals.forEach(function (external) {
-		external.object.canvas.remove(external.object);
-	});
-	this.externals = [];
+AttachmentContainer.prototype.removeAttachment = function (object) {
+	for (var i = 0; i < this.attachments.length; i++) {
+		var attachmentObj = this.attachments[i].object;
+		if (attachmentObj === object) {
+			attachmentObj.canvas.remove(attachmentObj);
+		}
+	}
 }
 
-NodeCircle.prototype.updateExternals = function () {
-	this.externals.forEach(function (ext) {
-		ext.object.set({
-			left: this.getCenterPoint().x + ext.offsetX,
-			top: this.getCenterPoint().y + ext.offsetY
+AttachmentContainer.prototype.clearAttachments = function () {
+	this.attachments.forEach(function (attachment) {
+		attachment.object.canvas.remove(attachment.object);
+	});
+	this.attachments = [];
+}
+
+AttachmentContainer.prototype.updateAttachments = function () {
+	this.attachments.forEach(function (attachment) {
+		attachment.object.set({
+			left: this.getCenterPoint().x + attachment.offsetX,
+			top: this.getCenterPoint().y + attachment.offsetY
 		});
-		ext.object.setCoords();
+		attachment.object.setCoords();
 	}.bind(this));
 }
 
+function NodeCircle(settings) {
+	fabric.Circle.apply(this, [settings]);
+	AttachmentContainer.apply(this);
+
+	this.on('moving', function (e) {
+		this.updateAttachments();
+	}.bind(this));
+}
+
+NodeCircle.prototype = Object.create(fabric.Circle.prototype);
+extend(NodeCircle.prototype, AttachmentContainer.prototype);
+
 NodeCircle.prototype.remove = function () {
-	this.clearExternals();
+	this.clearAttachments();
 	fabric.Circle.prototype.remove.call(this);
 }
 
@@ -117,7 +139,7 @@ GraphRenderer.prototype.addNode = function (node) {
 	}.bind(this));
 	this._associateNode(node, nodeCircle);
 
-	this.addNodeExternals(node);
+	this.addNodeAttachments(node);
 }
 
 GraphRenderer.prototype.addLink = function (link) {
@@ -127,7 +149,7 @@ GraphRenderer.prototype.addLink = function (link) {
 	this._associateLink(link, linkLine);
 }
 
-GraphRenderer.prototype.addNodeExternals = function (node) {
+GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var renderNode = this.nodeMap[node['id']];
 
 	//Supports
@@ -159,9 +181,9 @@ GraphRenderer.prototype.removeLink = function (link) {
 	this._unassociateLink(link);
 }
 
-GraphRenderer.prototype.removeNodeExternals = function (node) {
+GraphRenderer.prototype.removeNodeAttachments = function (node) {
 	var renderNode = this.nodeMap[node['id']];
-	renderNode.clearExternals();
+	renderNode.clearAttachments();
 }
 
 GraphRenderer.prototype.updateNode = function (node) {
@@ -174,8 +196,8 @@ GraphRenderer.prototype.updateNode = function (node) {
 	});
 
 	//TODO - Modify existing externals instead of replacing them
-	this.removeNodeExternals(node);
-	this.addNodeExternals(node);
+	this.removeNodeAttachments(node);
+	this.addNodeAttachments(node);
 }
 
 GraphRenderer.prototype.updateLink = function (link) {
@@ -305,7 +327,7 @@ function drawPinSupport(nodeCircle) {
 		top: nodeCircle.top + nodeCircle.height
 	});
 	canvas.add(triangle);
-	nodeCircle.addExternal(triangle, -12, nodeCircle.height / 2);
+	nodeCircle.addAttachment(triangle, -12, nodeCircle.height / 2);
 }
 
 function drawRollerSupport(nodeCircle) {
@@ -315,7 +337,7 @@ function drawRollerSupport(nodeCircle) {
 		top: nodeCircle.top + nodeCircle.height
 	});
 	canvas.add(triangle);
-	nodeCircle.addExternal(triangle, -12, nodeCircle.height / 2);	
+	nodeCircle.addAttachment(triangle, -12, nodeCircle.height / 2);	
 }
 
 function drawForce(nodeCircle) {
@@ -333,7 +355,7 @@ function drawForce(nodeCircle) {
 	});
 	group.setCoords();
 	canvas.add(group);
-	nodeCircle.addExternal(group, -16, -(nodeCircle.height / 2 + 72));
+	nodeCircle.addAttachment(group, -16, -(nodeCircle.height / 2 + 72));
 }
 
 function StateManager(canvas) {
