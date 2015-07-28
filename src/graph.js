@@ -144,7 +144,9 @@ Graph.prototype.removeSection = function (section) {
 
 Graph.prototype.updateNode = function (node, properties) {
 	for (key in properties) {
-		node[key] = properties[key];
+		if (properties.hasOwnProperty(key)) {
+			node[key] = properties[key];
+		}
 	}
 
 	this.notifier.notify(Graph.Event.UPDATE_NODE, node);
@@ -152,7 +154,9 @@ Graph.prototype.updateNode = function (node, properties) {
 
 Graph.prototype.updateLink = function (link, properties) {
 	for (key in properties) {
-		link[key] = properties[key];
+		if (properties.hasOwnProperty(key)) {
+			link[key] = properties[key];
+		}
 	}
 
 	this.notifier.notify(Graph.Event.UPDATE_LINK, link);
