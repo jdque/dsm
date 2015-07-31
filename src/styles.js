@@ -35,6 +35,14 @@ var Style = {
 		lockMovementY: true
 	},
 
+	Force: {
+		width: 32,
+		height: 64,
+		hasControls: false,
+		lockMovementX: true,
+		lockMovementY: true
+	},
+
 	ForceArrow: {
 		stroke: 'black',
 		strokeWidth: 2

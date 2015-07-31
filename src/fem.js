@@ -16,7 +16,20 @@ function extend(destination, source) {
 	return destination; 
 }
 
-function AttachmentContainer() {
+function Attachment() {
+	this.parent = null;
+}
+
+Attachment.prototype.attachTo = function (attachmentContainer, offsetX, offsetY) {
+	this.parent = attachmentContainer;
+	attachmentContainer.addAttachment(this, offsetX, offsetY);
+}
+
+Attachment.prototype.getParent = function () {
+	return this.parent;
+}
+
+function AttachmentContainer(object, offsetX, offsetY) {
 	this.attachments = [];
 }
 
@@ -70,6 +83,27 @@ NodeCircle.prototype.remove = function () {
 	this.clearAttachments();
 	fabric.Circle.prototype.remove.call(this);
 }
+
+function Force(settings) {
+	fabric.Group.apply(this, [[], settings]);
+	Attachment.apply(this);
+
+	this.add(new fabric.Line([0, 32, 0, -32], Style.ForceArrow));
+	this.add(new fabric.Line([0, 32, -12, 16], Style.ForceArrow));
+	this.add(new fabric.Line([0, 32, 12, 16], Style.ForceArrow));
+	this.setCoords();
+}
+
+Force.prototype = Object.create(fabric.Group.prototype);
+extend(Force.prototype, Attachment.prototype);
+
+function Support(settings) {
+	fabric.Triangle.apply(this, [settings]);
+	Attachment.apply(this);
+}
+
+Support.prototype = Object.create(fabric.Triangle.prototype);
+extend(Support.prototype, Attachment.prototype);
 
 function GraphRenderer(canvas, graph, origin) {
 	this.graph = graph;
@@ -321,41 +355,33 @@ function drawLink(fromNode, toNode) {
 }
 
 function drawPinSupport(nodeCircle) {
-	var triangle = new fabric.Triangle(Style.PinSupport);
-	triangle.set({
+	var support = new Support(Style.PinSupport);
+	support.set({
 		left: nodeCircle.getCenterPoint().x - 12,
 		top: nodeCircle.top + nodeCircle.height
 	});
-	canvas.add(triangle);
-	nodeCircle.addAttachment(triangle, -12, nodeCircle.height / 2);
+	support.attachTo(nodeCircle, -12, nodeCircle.height / 2);
+	canvas.add(support);
 }
 
 function drawRollerSupport(nodeCircle) {
-	var triangle = new fabric.Triangle(Style.RollerSupport);
-	triangle.set({
+	var support = new Support(Style.RollerSupport);
+	support.set({
 		left: nodeCircle.getCenterPoint().x - 12,
 		top: nodeCircle.top + nodeCircle.height
 	});
-	canvas.add(triangle);
-	nodeCircle.addAttachment(triangle, -12, nodeCircle.height / 2);	
+	support.attachTo(nodeCircle, -12, nodeCircle.height / 2);
+	canvas.add(support);
 }
 
 function drawForce(nodeCircle) {
-	var line1 = new fabric.Line([0, 32, 0, -32], Style.ForceArrow);
-	var line2 = new fabric.Line([0, 32, -12, 16], Style.ForceArrow);
-	var line3 = new fabric.Line([0, 32, 12, 16], Style.ForceArrow);
-	var group = new fabric.Group([line1, line2, line3], {
+	var force = new Force(Style.Force);
+	force.set({
 		left: nodeCircle.getCenterPoint().x - 16, 
-		top: nodeCircle.top - 72,
-		width: 32,
-		height: 64,
-		hasControls: false,
-		lockMovementX: true,
-		lockMovementY: true
+		top: nodeCircle.top - 72
 	});
-	group.setCoords();
-	canvas.add(group);
-	nodeCircle.addAttachment(group, -16, -(nodeCircle.height / 2 + 72));
+	force.attachTo(nodeCircle, -16, -(nodeCircle.height / 2 + 72));
+	canvas.add(force);
 }
 
 function StateManager(canvas) {
@@ -543,10 +569,24 @@ function setupDOM() {
 	var canvasWrapper = document.getElementById("canvas-wrapper");
 	canvasWrapper.addEventListener("keydown", function (e) {
 		var selectedObject = canvas.getActiveObject();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
-			if (e.keyCode === 46) {
-				var node = graphRenderer.getGraphNode(selectedObject);
-				graph.removeNode(node);
+		if (appState.getActiveStateId() === 'selection') {
+			if (selectedObject instanceof NodeCircle) {
+				if (e.keyCode === 46) {
+					var node = graphRenderer.getGraphNode(selectedObject);
+					graph.removeNode(node);
+				}
+			}
+			else if (selectedObject instanceof Force) {
+				if (e.keyCode === 46) {
+					var node = graphRenderer.getGraphNode(selectedObject.getParent());
+					graph.updateNode(node, {force: [0, 0]});
+				}
+			}
+			else if (selectedObject instanceof Support) {
+				if (e.keyCode === 46) {
+					var node = graphRenderer.getGraphNode(selectedObject.getParent());
+					graph.updateNode(node, {constraint: ["free", "free"]});
+				}
 			}
 		}
 	}, false);
