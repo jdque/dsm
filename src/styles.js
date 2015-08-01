@@ -2,7 +2,10 @@ var Style = {
 	Node: {
 		fill: 'red',
 		radius: 10,
-		hasControls: false
+		hasControls: false,
+		lockRotation: true,
+		lockScalingX: true,
+		lockScalingY: true
 	},
 
 	Link: {
