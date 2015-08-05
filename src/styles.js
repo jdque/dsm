@@ -1,49 +1,42 @@
 var Style = {
 	Node: {
 		fill: 'red',
-		radius: 10,
-		hasControls: false,
-		lockRotation: true,
-		lockScalingX: true,
-		lockScalingY: true
+		radius: 10
 	},
 
 	Link: {
 		fill: 'black',
 	    stroke: 'black',
-	    strokeWidth: 5,
-	    selectable: false,
-	    hasControls: false
+	    strokeWidth: 5
 	},
 
 	PinSupport: {
+		points: [0, 0, -12, 24, 12, 24, 0, 0],
 		width: 24,
 		height: 24,
 		fill: 'blue',
 		stroke: 'black',
 		strokeWidth: 1,
-		hasControls: false,
-		lockMovementX: true,
-		lockMovementY: true
+		closed: true
 	},
 
 	RollerSupport: {
+		points: [0, 0, -12, 24, 12, 24, 0, 0],
 		width: 24,
 		height: 24,
 		fill: 'green',
 		stroke: 'black',
 		strokeWidth: 1,
-		hasControls: false,
-		lockMovementX: true,
-		lockMovementY: true
+		closed: true
 	},
 
 	Force: {
+		points: [0, 0, 0, 48],
 		width: 32,
-		height: 64,
-		hasControls: false,
-		lockMovementX: true,
-		lockMovementY: true
+		height: 48,
+		fill: 'black',
+		stroke: 'black',
+		strokeWidth: 3
 	},
 
 	ForceArrow: {
@@ -52,9 +45,8 @@ var Style = {
 	},
 
 	GridLine: {
-		stroke: 'rgba(128, 128, 128, 0.8)',
+		stroke: 'rgba(128, 128, 128, 1.0)',
 		strokeWidth: 1,
-		selectable: false,
-	    hasControls: false
+		listening: false
 	}
 }
