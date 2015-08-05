@@ -472,7 +472,7 @@ function addNodeState() {
 	}.bind(this));
 
 	this.createNewNode = function () {
-		var node = new Node({
+		var node = new Graph.Node({
 			id: Math.round(Math.random(1) * 100000),
 			position: [this.activeNode.x(), origin[1] - this.activeNode.y()]
 		});
@@ -509,15 +509,15 @@ function addLinkState() {
 	}.bind(this));
 
 	this.createNewLink = function (startNodeCircle, endNodeCircle) {
-		var mat = new Material({id: "steel", elasticMod: 4});
+		var mat = new Graph.Material({id: "steel", elasticMod: 4});
 		graph.addMaterial(mat);
 
-		var sec = new Section({id: "spar", area: 100});
+		var sec = new Graph.Section({id: "spar", area: 100});
 		graph.addSection(sec);
 
 		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
 		var toNode = graphRenderer.getGraphNode(endNodeCircle);
-		var link = new Link({
+		var link = new Graph.Link({
 			id: Math.round(Math.random(1) * 100000),
 			source: fromNode,
 			target: toNode,

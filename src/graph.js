@@ -1,28 +1,3 @@
-function Node(settings) {
-	this.id         = settings.id 		  || -1;
-	this.position   = settings.position   || [0, 0];
-	this.constraint = settings.constraint || ["free", "free"];
-	this.force      = settings.force      || [0, 0];
-}
-
-function Link(settings) {
-	this.id 		= settings.id         || -1;
-	this.source 	= settings.source	  || null;
-	this.target 	= settings.target	  || null;
-	this.material   = settings.material   || null;
-	this.section    = settings.section    || null;
-}
-
-function Material(settings) {
-	this.id 		= settings.id         || -1;
-	this.elasticMod = settings.elasticMod || 0;
-}
-
-function Section(settings) {
-	this.id 		= settings.id         || -1;
-	this.area       = settings.area       || 0;
-}
-
 function Graph() {
 	this.nodes = [];
 	this.links = [];
@@ -41,26 +16,51 @@ Graph.Event = {
 	UPDATE_LINK: 5
 };
 
+Graph.Node = function (settings) {
+	this.id         = settings.id 		  || -1;
+	this.position   = settings.position   || [0, 0];
+	this.constraint = settings.constraint || ["free", "free"];
+	this.force      = settings.force      || [0, 0];
+}
+
+Graph.Link = function (settings) {
+	this.id 		= settings.id         || -1;
+	this.source 	= settings.source	  || null;
+	this.target 	= settings.target	  || null;
+	this.material   = settings.material   || null;
+	this.section    = settings.section    || null;
+}
+
+Graph.Material = function (settings) {
+	this.id 		= settings.id         || -1;
+	this.elasticMod = settings.elasticMod || 0;
+}
+
+Graph.Section = function (settings) {
+	this.id 		= settings.id         || -1;
+	this.area       = settings.area       || 0;
+}
+
 Graph.fromJSON = function (json) {
 	var graph = new Graph();
 	var error = false;
 
 	json['materials'].forEach(function (material) {
-		graph.addMaterial(new Material({
+		graph.addMaterial(new Graph.Material({
 			id: material['id'],
 			elasticMod: material['elasticMod']
 		}));
 	});
 
 	json['sections'].forEach(function (section) {
-		graph.addSection(new Section({
+		graph.addSection(new Graph.Section({
 			id: section['id'],
 			area: section['area']
 		}));
 	})
 	
 	json['nodes'].forEach(function (node) {
-		graph.addNode(new Node({
+		graph.addNode(new Graph.Node({
 			id: node['id'],
 			position: node['position'],
 			constraint: node['constraint'],
@@ -79,7 +79,7 @@ Graph.fromJSON = function (json) {
 			return;
 		}
 
-		graph.addLink(new Link({
+		graph.addLink(new Graph.Link({
 			id: element['id'],
 			source: source,
 			target: target,
