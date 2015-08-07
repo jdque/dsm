@@ -353,8 +353,24 @@ function drawPinSupport(nodeCircle) {
 	var support = new Support(Style.PinSupport);
 	support.setAttrs({
 		x: nodeCircle.x(),
-		y: nodeCircle.y() + nodeCircle.height() / 2
+		y: nodeCircle.y() + nodeCircle.height() / 2,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = nodeCircle.height() / 2;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}
 	});
+	support.on('dragmove', function () {
+		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
+	})
 	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
 	canvas.add(support);
 
@@ -365,7 +381,23 @@ function drawRollerSupport(nodeCircle) {
 	var support = new Support(Style.RollerSupport);
 	support.setAttrs({
 		x: nodeCircle.x(),
-		y: nodeCircle.y() + nodeCircle.height() / 2
+		y: nodeCircle.y() + nodeCircle.height() / 2,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = nodeCircle.height() / 2;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}
+	});
+	support.on('dragmove', function () {
+		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
 	});
 	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
 	canvas.add(support);
@@ -377,7 +409,23 @@ function drawForce(nodeCircle) {
 	var force = new Force(Style.Force);
 	force.setAttrs({
 		x: nodeCircle.x(),
-		y: nodeCircle.y() - 64
+		y: nodeCircle.y() - 64,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = 64;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}
+	});
+	force.on('dragmove', function () {
+		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
 	});
 	force.attachTo(nodeCircle, 0, -(nodeCircle.height() / 2 + 32));
 	canvas.add(force);
