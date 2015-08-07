@@ -297,6 +297,9 @@ function drawPinSupport(nodeCircle) {
 		y: nodeCircle.y() + nodeCircle.height() / 2,
 		draggable: true,
 		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
 			var x1 = nodeCircle.x();
 			var y1 = nodeCircle.y();
 			var x2 = stage.getPointerPosition().x;
@@ -307,7 +310,7 @@ function drawPinSupport(nodeCircle) {
 				x: Math.round((x2 - x1) * scale) + x1,
 				y: Math.round((y2 - y1) * scale) + y1
 			};
-		}
+		}.bind(support)
 	});
 	support.on('dragmove', function () {
 		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
@@ -325,6 +328,9 @@ function drawRollerSupport(nodeCircle) {
 		y: nodeCircle.y() + nodeCircle.height() / 2,
 		draggable: true,
 		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
 			var x1 = nodeCircle.x();
 			var y1 = nodeCircle.y();
 			var x2 = stage.getPointerPosition().x;
@@ -335,7 +341,7 @@ function drawRollerSupport(nodeCircle) {
 				x: Math.round((x2 - x1) * scale) + x1,
 				y: Math.round((y2 - y1) * scale) + y1
 			};
-		}
+		}.bind(support)
 	});
 	support.on('dragmove', function () {
 		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
@@ -353,6 +359,9 @@ function drawForce(nodeCircle) {
 		y: nodeCircle.y() - 64,
 		draggable: true,
 		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
 			var x1 = nodeCircle.x();
 			var y1 = nodeCircle.y();
 			var x2 = stage.getPointerPosition().x;
@@ -363,7 +372,7 @@ function drawForce(nodeCircle) {
 				x: Math.round((x2 - x1) * scale) + x1,
 				y: Math.round((y2 - y1) * scale) + y1
 			};
-		}
+		}.bind(force)
 	});
 	force.on('dragmove', function () {
 		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
