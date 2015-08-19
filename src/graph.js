@@ -17,10 +17,12 @@ Graph.Event = {
 };
 
 Graph.Node = function (settings) {
-	this.id         = settings.id 		  || -1;
-	this.position   = settings.position   || [0, 0];
-	this.constraint = settings.constraint || ["free", "free"];
-	this.force      = settings.force      || [0, 0];
+	this.id           = settings.id           || -1;
+	this.position     = settings.position     || [0, 0];
+	this.displacement = settings.displacement || [0, 0];
+	this.freedom      = settings.freedom      || [true, true];
+	this.rotation     = settings.rotation     || 0;
+	this.force        = settings.force        || [0, 0];
 }
 
 Graph.Link = function (settings) {
@@ -63,7 +65,9 @@ Graph.fromJSON = function (json) {
 		graph.addNode(new Graph.Node({
 			id: node['id'],
 			position: node['position'],
-			constraint: node['constraint'],
+			displacement: node['displacement'],
+			freedom: node['freedom'],
+			rotation: node['rotation'],
 			force: node['force']
 		}));
 	});
@@ -222,41 +226,89 @@ var test = {
 		{
 			id: 1,
 			position: [32, 32],
-			constraint: ["free", "fixed"],
+			displacement: [0, 0],
+			freedom: [true, false],
+			rotation: -45,
+			force: [0, -20]
+		},
+		{
+			id: 2,
+			position: [288, 32],
+			displacement: [0, 0],
+			freedom: [false, false],
+			rotation: 0,
+			force: [0, 0]
+		}
+	],
+	elements: [
+		{
+			id: "a",
+			source: 2,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		}
+	],
+	materials: [
+		{
+			id: "steel",
+			elasticMod: 4
+		}
+	],
+	sections: [
+		{
+			id: "spar",
+			area: 100
+		}
+	]
+};
+
+var test2 = {
+	nodes: [
+		{
+			id: 1,
+			position: [32, 32],
+			displacement: [0, 0],
+			freedom: [true, false],
+			rotation: -45,
 			force: [0, 0]
 		},
 		{
 			id: 2,
 			position: [288, 32],
-			constraint: ["fixed", "fixed"],
+			displacement: [0, 0],
+			freedom: [false, false],
+			rotation: 0,
 			force: [0, 0]
 		},
 		{
 			id: 3,
-			position: [160, 128],
-			constraint: ["free", "free"],
+			position: [160, 160],
+			displacement: [0, 0],
+			freedom: [true, true],
+			rotation: 0,
 			force: [0, -20]
 		}
 	],
 	elements: [
 		{
 			id: "a",
-			source: 1,
-			target: 2,
+			source: 2,
+			target: 1,
 			material: "steel",
 			section: "spar"
 		},
 		{
 			id: "b",
-			source: 1,
-			target: 3,
+			source: 3,
+			target: 1,
 			material: "steel",
 			section: "spar"
 		},
 		{
 			id: "c",
-			source: 3,
-			target: 2,
+			source: 2,
+			target: 3	,
 			material: "steel",
 			section: "spar"
 		}

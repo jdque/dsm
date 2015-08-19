@@ -108,10 +108,10 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var renderNode = this.nodeMap[node['id']];
 
 	//Supports
-	if (node.constraint[0] === 'fixed' && node.constraint[1] === 'fixed') {
+	if (node.freedom[0] === false && node.freedom[1] === false) {
 		drawPinSupport(renderNode);
 	}
-	else if (node.constraint[0] === 'free' && node.constraint[1] === 'fixed') {
+	else if (node.freedom[0] === true && node.freedom[1] === false) {
 		drawRollerSupport(renderNode);
 	}
 
@@ -507,7 +507,7 @@ function setupDOM() {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			graph.updateNode(node, {constraint: ['fixed', 'fixed']});
+			graph.updateNode(node, {freedom: [false, false]});
 		}
 	}
 
@@ -515,7 +515,7 @@ function setupDOM() {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			graph.updateNode(node, {constraint: ['free', 'fixed']});
+			graph.updateNode(node, {freedom: [true, false]});
 		}	
 	}
 
@@ -554,7 +554,7 @@ function setupDOM() {
 			else if (selectedObject instanceof Support) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
-					graph.updateNode(node, {constraint: ["free", "free"]});
+					graph.updateNode(node, {freedom: [true, true]});
 				}
 			}
 		}
@@ -581,7 +581,7 @@ function initialize() {
 
 	origin = [0, canvas.height()];
 	//graph = new Graph();
-	graph = Graph.fromJSON(test);
+	graph = Graph.fromJSON(test2);
 
 	gridRenderer = new GridRenderer(gridLayer);
 	gridRenderer.setSpacing(32, 32);
