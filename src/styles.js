@@ -7,7 +7,7 @@ var Style = {
 	Link: {
 		fill: 'black',
 	    stroke: 'black',
-	    strokeWidth: 5
+	    strokeWidth: 4
 	},
 
 	PinSupport: {

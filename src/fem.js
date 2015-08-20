@@ -109,15 +109,15 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 
 	//Supports
 	if (node.freedom[0] === false && node.freedom[1] === false) {
-		drawPinSupport(renderNode);
+		drawPinSupport(-node.rotation, renderNode);
 	}
 	else if (node.freedom[0] === true && node.freedom[1] === false) {
-		drawRollerSupport(renderNode);
+		drawRollerSupport(-node.rotation, renderNode);
 	}
 
 	//Forces
 	if (node.force[1] !== 0) {
-		drawForce(renderNode);
+		drawForce(-Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90, renderNode);
 	}
 }
 
@@ -290,11 +290,12 @@ function drawLink(fromNode, toNode) {
 	return line;
 }
 
-function drawPinSupport(nodeCircle) {
+function drawPinSupport(rotation, nodeCircle) {
 	var support = new Support(Style.PinSupport);
 	support.setAttrs({
-		x: nodeCircle.x(),
-		y: nodeCircle.y() + nodeCircle.height() / 2,
+		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
@@ -314,18 +315,19 @@ function drawPinSupport(nodeCircle) {
 	});
 	support.on('dragmove', function () {
 		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
-	})
+	});
 	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
 	canvas.add(support);
 
 	return support;
 }
 
-function drawRollerSupport(nodeCircle) {
+function drawRollerSupport(rotation, nodeCircle) {
 	var support = new Support(Style.RollerSupport);
 	support.setAttrs({
-		x: nodeCircle.x(),
-		y: nodeCircle.y() + nodeCircle.height() / 2,
+		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
@@ -352,11 +354,12 @@ function drawRollerSupport(nodeCircle) {
 	return support;
 }
 
-function drawForce(nodeCircle) {
+function drawForce(rotation, nodeCircle) {
 	var force = new Force(Style.Force);
 	force.setAttrs({
-		x: nodeCircle.x(),
-		y: nodeCircle.y() - 64,
+		x: nodeCircle.x() + 64 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() - 64 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
@@ -395,6 +398,24 @@ function selectionState() {
 			canvas.draw();
 			graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
 				position: [selectedObject.x(), origin[1] - selectedObject.y()]
+			});
+		}
+	}.bind(this));
+
+	stage.on("dragend", function (e) {
+		var selectedObject = mainSelection.get();
+		if (selectedObject instanceof Support) {
+			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+			graph.updateNode(node, {
+				rotation: -selectedObject.rotation()
+			});
+		}
+		else if (selectedObject instanceof Force) {
+			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+			var angle = selectedObject.rotation() * Math.PI / 180;
+			var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
+			graph.updateNode(node, {
+				force: [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle)]
 			});
 		}
 	}.bind(this));
