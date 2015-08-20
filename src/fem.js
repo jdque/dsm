@@ -9,29 +9,158 @@ var graphRenderer;
 var gridRenderer;
 var mainSelection;
 
+//------------------------------------------------------------------------------
+
 function NodeCircle(settings) {
 	Konva.Circle.apply(this, [settings]);
 	AttachmentContainer.apply(this);
 }
 
+NodeCircle.create = function (x, y) {
+	var circle = new NodeCircle(Style.Node);
+	circle.setAttrs({
+		x: x,
+		y: y,
+		draggable: true
+	});
+
+	return circle;
+}
+
 NodeCircle.prototype = Object.create(Konva.Circle.prototype);
 extend(NodeCircle.prototype, AttachmentContainer.prototype);
+
+//------------------------------------------------------------------------------
+
+function LinkLine(settings) {
+	Konva.Line.apply(this, [settings]);
+}
+
+LinkLine.create = function (fromNode, toNode) {
+	var line = new LinkLine(Style.Link);
+	line.setAttrs({
+		points: [fromNode.x(), fromNode.y(), toNode.x(), toNode.y()]
+	});
+
+	return line;
+}
+
+LinkLine.prototype = Object.create(Konva.Line.prototype);
+
+//------------------------------------------------------------------------------
 
 function Force(settings) {
 	Konva.Arrow.apply(this, [settings]);
 	Attachment.apply(this);
 }
 
+Force.create = function (rotation, nodeCircle) {
+	var force = new Force(Style.Force);
+	force.setAttrs({
+		x: nodeCircle.x() + 64 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() - 64 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = 64;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}.bind(force)
+	});
+	force.on('dragmove', function () {
+		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
+	});
+	force.attachTo(nodeCircle, 0, -(nodeCircle.height() / 2 + 32));
+
+	return force;
+}
+
 Force.prototype = Object.create(Konva.Arrow.prototype);
 extend(Force.prototype, Attachment.prototype);
+
+//------------------------------------------------------------------------------
 
 function Support(settings) {
 	Konva.Line.apply(this, [settings]);
 	Attachment.apply(this);
 }
 
+Support.createRoller = function (rotation, nodeCircle) {
+	var support = new Support(Style.RollerSupport);
+	support.setAttrs({
+		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = nodeCircle.height() / 2;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}.bind(support)
+	});
+	support.on('dragmove', function () {
+		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
+	});
+	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
+
+	return support;
+}
+
+Support.createPin = function (rotation, nodeCircle) {
+	var support = new Support(Style.PinSupport);
+	support.setAttrs({
+		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
+		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
+		rotation: rotation,
+		draggable: true,
+		dragBoundFunc: function (pos) {
+			if (!this.isDragging())
+				return pos;
+
+			var x1 = nodeCircle.x();
+			var y1 = nodeCircle.y();
+			var x2 = stage.getPointerPosition().x;
+			var y2 = stage.getPointerPosition().y;
+			var radius = nodeCircle.height() / 2;
+			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			return {
+				x: Math.round((x2 - x1) * scale) + x1,
+				y: Math.round((y2 - y1) * scale) + y1
+			};
+		}.bind(support)
+	});
+	support.on('dragmove', function () {
+		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
+	});
+	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
+
+	return support;
+}
+
 Support.prototype = Object.create(Konva.Line.prototype);
 extend(Support.prototype, Attachment.prototype);
+
+//------------------------------------------------------------------------------
 
 function GraphRenderer(canvas, graph, origin) {
 	this.graph = graph;
@@ -88,7 +217,8 @@ GraphRenderer.prototype.redraw = function () {
 }
 
 GraphRenderer.prototype.addNode = function (node) {
-	var nodeCircle = drawNode(node.position[0], this.origin[1] - node.position[1]);
+	var nodeCircle = NodeCircle.create(node.position[0], this.origin[1] - node.position[1]);
+	canvas.add(nodeCircle);
 	canvas.draw();
 
 	this._associateNode(node, nodeCircle);
@@ -96,28 +226,34 @@ GraphRenderer.prototype.addNode = function (node) {
 }
 
 GraphRenderer.prototype.addLink = function (link) {
-	var fromNode = this.nodeMap[link.source['id']];
-	var toNode = this.nodeMap[link.target['id']];
-	var linkLine = drawLink(fromNode, toNode);
+	var fromNode = this.getRenderNode(link.source);
+	var toNode = this.getRenderNode(link.target);
+	var linkLine = LinkLine.create(fromNode, toNode);
+	canvas.add(linkLine);
+	linkLine.moveToBottom();
 	canvas.draw();
 
 	this._associateLink(link, linkLine);
 }
 
 GraphRenderer.prototype.addNodeAttachments = function (node) {
-	var renderNode = this.nodeMap[node['id']];
+	var renderNode = this.getRenderNode(node);
 
 	//Supports
 	if (node.freedom[0] === false && node.freedom[1] === false) {
-		drawPinSupport(-node.rotation, renderNode);
+		var pinSupport = Support.createPin(-node.rotation, renderNode);
+		this.canvas.add(pinSupport);
 	}
 	else if (node.freedom[0] === true && node.freedom[1] === false) {
-		drawRollerSupport(-node.rotation, renderNode);
+		var rollerSupport = Support.createRoller(-node.rotation, renderNode);
+		this.canvas.add(rollerSupport);
 	}
 
 	//Forces
 	if (node.force[1] !== 0) {
-		drawForce(-Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90, renderNode);
+		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
+		var force = Force.create(angle, renderNode);
+		this.canvas.add(force);
 	}
 }
 
@@ -129,27 +265,27 @@ GraphRenderer.prototype.removeNode = function (node) {
 
 	this.removeNodeAttachments(node);
 
-	this.nodeMap[node['id']].destroy();
+	this.getRenderNode(node).destroy();
 	canvas.draw();
 
 	this._unassociateNode(node);
 }
 
 GraphRenderer.prototype.removeLink = function (link) {
-	this.linkMap[link['id']].destroy();
+	this.getRenderLink(link).destroy();
 	canvas.draw();
 
 	this._unassociateLink(link);
 }
 
 GraphRenderer.prototype.removeNodeAttachments = function (node) {
-	var renderNode = this.nodeMap[node['id']];
+	var renderNode = this.getRenderNode(node);
 	renderNode.clearAttachments();
 	canvas.draw();
 }
 
 GraphRenderer.prototype.updateNode = function (node) {
-	var renderNode = this.nodeMap[node['id']];
+	var renderNode = this.getRenderNode(node);
 
 	//Position
 	renderNode.setAttrs({
@@ -172,10 +308,10 @@ GraphRenderer.prototype.updateNode = function (node) {
 
 GraphRenderer.prototype.updateLink = function (link) {
 	//Position
-	var line = this.linkMap[link['id']];
-	var sourceRenderNode = this.nodeMap[link.source['id']];
-	var targetRenderNode = this.nodeMap[link.target['id']];
-	line.setAttrs({
+	var renderLink = this.getRenderLink(link);
+	var sourceRenderNode = this.getRenderNode(link.source);
+	var targetRenderNode = this.getRenderNode(link.target);
+	renderLink.setAttrs({
 		points: [sourceRenderNode.x(), sourceRenderNode.y(),
 				 targetRenderNode.x(), targetRenderNode.y()]
 	});
@@ -189,6 +325,14 @@ GraphRenderer.prototype.getGraphNode = function (renderNode) {
 
 GraphRenderer.prototype.getGraphLink = function (renderLink) {
 	return renderLink._graphLink;
+}
+
+GraphRenderer.prototype.getRenderNode = function (graphNode) {
+	return this.nodeMap[graphNode['id']];
+}
+
+GraphRenderer.prototype.getRenderLink = function (graphLink) {
+	return this.linkMap[graphLink['id']];
 }
 
 GraphRenderer.prototype._associateNode = function (node, renderObject) {
@@ -208,6 +352,8 @@ GraphRenderer.prototype._unassociateNode = function (node) {
 GraphRenderer.prototype._unassociateLink = function (link) {
 	delete this.linkMap[link['id']];
 }
+
+//------------------------------------------------------------------------------
 
 function GridRenderer(canvas) {
 	this.canvas = canvas;
@@ -267,124 +413,7 @@ GridRenderer.prototype.snapObject = function (object, anchor) {
 	});
 }
 
-function drawNode(canvasX, canvasY) {
-	var circle = new NodeCircle(Style.Node);
-	circle.setAttrs({
-		x: canvasX,
-		y: canvasY,
-		draggable: true
-	});
-	canvas.add(circle);
-
-	return circle;
-}
-
-function drawLink(fromNode, toNode) {
-	var line = new Konva.Line(Style.Link);
-	line.setAttrs({
-		points: [fromNode.x(), fromNode.y(), toNode.x(), toNode.y()]
-	});
-	canvas.add(line);
-	line.moveToBottom();
-
-	return line;
-}
-
-function drawPinSupport(rotation, nodeCircle) {
-	var support = new Support(Style.PinSupport);
-	support.setAttrs({
-		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = nodeCircle.height() / 2;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(support)
-	});
-	support.on('dragmove', function () {
-		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
-	});
-	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
-	canvas.add(support);
-
-	return support;
-}
-
-function drawRollerSupport(rotation, nodeCircle) {
-	var support = new Support(Style.RollerSupport);
-	support.setAttrs({
-		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = nodeCircle.height() / 2;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(support)
-	});
-	support.on('dragmove', function () {
-		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
-	});
-	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
-	canvas.add(support);
-
-	return support;
-}
-
-function drawForce(rotation, nodeCircle) {
-	var force = new Force(Style.Force);
-	force.setAttrs({
-		x: nodeCircle.x() + 64 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() - 64 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = 64;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(force)
-	});
-	force.on('dragmove', function () {
-		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
-	});
-	force.attachTo(nodeCircle, 0, -(nodeCircle.height() / 2 + 32));
-	canvas.add(force);
-
-	return force;
-}
+//------------------------------------------------------------------------------
 
 function selectionState() {
 	stage.on("dragstart", function (e) {
@@ -432,7 +461,8 @@ function selectionState() {
 };
 
 function addNodeState() {
-	this.activeNode = drawNode(0, 0);
+	this.activeNode = NodeCircle.create(0, 0);
+	canvas.add(this.activeNode);
 	canvas.draw();
 
 	stage.on("contentClick", function () {
@@ -464,10 +494,12 @@ function addNodeState() {
 
 function addLinkState() {
 	var selectedObject = mainSelection.get();
-	var line = drawLink(selectedObject, selectedObject);
+	var linkLine = LinkLine.create(selectedObject, selectedObject);
+	canvas.add(linkLine);
+	linkLine.moveToBottom();
 	canvas.draw();
 	
-	this.activeLine = line;
+	this.activeLine = linkLine;
 	this.startNodeCircle = selectedObject;
 
 	stage.on("click", function (e) {
@@ -483,7 +515,7 @@ function addLinkState() {
 	}.bind(this));
 
 	stage.on("contentMousemove", function () {
-		line.setAttrs({
+		this.activeLine.setAttrs({
 			points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
 					 stage.getPointerPosition().x, stage.getPointerPosition().y]
 		});
@@ -575,7 +607,10 @@ function setupDOM() {
 			else if (selectedObject instanceof Support) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
-					graph.updateNode(node, {freedom: [true, true]});
+					graph.updateNode(node, {
+						freedom: [true, true],
+						rotation: 0
+					});
 				}
 			}
 		}
