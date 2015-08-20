@@ -40,12 +40,12 @@ function GraphRenderer(canvas, graph, origin) {
 	this.nodeMap = {};
 	this.linkMap = {};
 
-	this.graph.addListener(Graph.Event.ADD_NODE, this.addNode.bind(this));
-	this.graph.addListener(Graph.Event.ADD_LINK, this.addLink.bind(this));
-	this.graph.addListener(Graph.Event.REMOVE_NODE, this.removeNode.bind(this));
-	this.graph.addListener(Graph.Event.REMOVE_LINK, this.removeLink.bind(this));
-	this.graph.addListener(Graph.Event.UPDATE_NODE, this.updateNode.bind(this));
-	this.graph.addListener(Graph.Event.UPDATE_LINK, this.updateLink.bind(this));
+	this.graph.on(Graph.Event.ADD_NODE, this.addNode.bind(this));
+	this.graph.on(Graph.Event.ADD_LINK, this.addLink.bind(this));
+	this.graph.on(Graph.Event.REMOVE_NODE, this.removeNode.bind(this));
+	this.graph.on(Graph.Event.REMOVE_LINK, this.removeLink.bind(this));
+	this.graph.on(Graph.Event.UPDATE_NODE, this.updateNode.bind(this));
+	this.graph.on(Graph.Event.UPDATE_LINK, this.updateLink.bind(this));
 }
 
 GraphRenderer.prototype.redraw = function () {

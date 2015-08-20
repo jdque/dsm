@@ -217,7 +217,7 @@ Graph.prototype.findSectionById = function (id) {
 	return this._findById(this.sections, id);
 }
 
-Graph.prototype.addListener = function (type, func) {
+Graph.prototype.on = function (type, func) {
 	this.notifier.addListener(type, func);
 }
 
