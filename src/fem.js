@@ -240,17 +240,26 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var renderNode = this.getRenderNode(node);
 
 	//Supports
-	if (node.freedom[0] === false && node.freedom[1] === false) {
+	var xFree = node.freedom[0];
+	var yFree = node.freedom[1];
+	var rotFree = node.freedom[2];
+	if (!xFree & !yFree & !rotFree) {
+		//fixed support
+	}
+	else if (!xFree && !yFree && rotFree) {
 		var pinSupport = Support.createPin(-node.rotation, renderNode);
 		this.canvas.add(pinSupport);
 	}
-	else if (node.freedom[0] === true && node.freedom[1] === false) {
+	else if ((xFree && !yFree || !xFree && yFree) && !rotFree) {
+		//slider support
+	}
+	else if ((xFree && !yFree || !xFree && yFree) && rotFree) {
 		var rollerSupport = Support.createRoller(-node.rotation, renderNode);
 		this.canvas.add(rollerSupport);
 	}
 
 	//Forces
-	if (node.force[1] !== 0) {
+	if (node.force[0] !== 0 || node.force[1] !== 0) {
 		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
 		var force = Force.create(angle, renderNode);
 		this.canvas.add(force);
@@ -444,7 +453,7 @@ function selectionState() {
 			var angle = selectedObject.rotation() * Math.PI / 180;
 			var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
 			graph.updateNode(node, {
-				force: [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle)]
+				force: [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle), node.force[2]]
 			});
 		}
 	}.bind(this));
@@ -526,7 +535,7 @@ function addLinkState() {
 		var mat = new Graph.Material({id: "steel", elasticMod: 4});
 		graph.addMaterial(mat);
 
-		var sec = new Graph.Section({id: "spar", area: 100});
+		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1});
 		graph.addSection(sec);
 
 		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
@@ -560,7 +569,7 @@ function setupDOM() {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			graph.updateNode(node, {freedom: [false, false]});
+			graph.updateNode(node, {freedom: [false, false, true]});
 		}
 	}
 
@@ -568,7 +577,7 @@ function setupDOM() {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			graph.updateNode(node, {freedom: [true, false]});
+			graph.updateNode(node, {freedom: [true, false, true]});
 		}	
 	}
 
@@ -576,7 +585,7 @@ function setupDOM() {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
-			graph.updateNode(node, {force: [0, -20]});
+			graph.updateNode(node, {force: [0, -20, 0]});
 		}
 	}
 
@@ -601,14 +610,14 @@ function setupDOM() {
 			else if (selectedObject instanceof Force) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
-					graph.updateNode(node, {force: [0, 0]});
+					graph.updateNode(node, {force: [0, 0, 0]});
 				}
 			}
 			else if (selectedObject instanceof Support) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
 					graph.updateNode(node, {
-						freedom: [true, true],
+						freedom: [true, true, true],
 						rotation: 0
 					});
 				}
@@ -637,7 +646,7 @@ function initialize() {
 
 	origin = [0, canvas.height()];
 	//graph = new Graph();
-	graph = Graph.fromJSON(test2);
+	graph = Graph.fromJSON(test3);
 
 	gridRenderer = new GridRenderer(gridLayer);
 	gridRenderer.setSpacing(32, 32);

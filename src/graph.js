@@ -19,10 +19,10 @@ Graph.Event = {
 Graph.Node = function (settings) {
 	this.id           = settings.id           || -1;
 	this.position     = settings.position     || [0, 0];
-	this.displacement = settings.displacement || [0, 0];
-	this.freedom      = settings.freedom      || [true, true];
+	this.displacement = settings.displacement || [0, 0, 0];
+	this.freedom      = settings.freedom      || [true, true, true];
 	this.rotation     = settings.rotation     || 0;
-	this.force        = settings.force        || [0, 0];
+	this.force        = settings.force        || [0, 0, 0];
 }
 
 Graph.Link = function (settings) {
@@ -41,6 +41,7 @@ Graph.Material = function (settings) {
 Graph.Section = function (settings) {
 	this.id 		= settings.id         || -1;
 	this.area       = settings.area       || 0;
+	this.momInertia = settings.momInertia || 0;
 }
 
 Graph.fromJSON = function (json) {
@@ -57,7 +58,8 @@ Graph.fromJSON = function (json) {
 	json['sections'].forEach(function (section) {
 		graph.addSection(new Graph.Section({
 			id: section['id'],
-			area: section['area']
+			area: section['area'],
+			momInertia: section['momInertia']
 		}));
 	})
 	
@@ -323,6 +325,71 @@ var test2 = {
 		{
 			id: "spar",
 			area: 100
+		}
+	]
+};
+
+var test3 = {
+	nodes: [
+		{
+			id: 1,
+			position: [32, 32],
+			displacement: [0, 0, 0],
+			freedom: [true, false, true],
+			rotation: -45,
+			force: [0, 0, 0]
+		},
+		{
+			id: 2,
+			position: [288, 32],
+			displacement: [0, 0, 0],
+			freedom: [false, false, true],
+			rotation: 0,
+			force: [0, 0, 0]
+		},
+		{
+			id: 3,
+			position: [160, 160],
+			displacement: [0, 0, 0],
+			freedom: [true, true, true],
+			rotation: 0,
+			force: [0, -20, 0]
+		}
+	],
+	elements: [
+		{
+			id: "a",
+			source: 2,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "b",
+			source: 3,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "c",
+			source: 2,
+			target: 3	,
+			material: "steel",
+			section: "spar"
+		}
+	],
+	materials: [
+		{
+			id: "steel",
+			elasticMod: 4
+		}
+	],
+	sections: [
+		{
+			id: "spar",
+			area: 100,
+			momInertia: 1
 		}
 	]
 };

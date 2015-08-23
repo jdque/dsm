@@ -21,7 +21,7 @@ Solver.solve = function (graph) {
 	});
 
 	//Construct global K
-	var globalK = N.rep([graph.nodes.length * 2, graph.nodes.length * 2], 0);
+	var globalK = N.rep([graph.nodes.length * 3, graph.nodes.length * 3], 0);
 	graph.links.forEach(function (link) {
 		var length = Math.sqrt(N.sum(N.pow(N.sub(link.target.position, link.source.position), 2)));
 		var k = link.section.area * link.material.elasticMod / length;
@@ -33,23 +33,40 @@ Solver.solve = function (graph) {
 		var targetAngle = link.target.rotation * Math.PI / 180;
 		var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
 		var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
-		var l1 = Math.cos(sourceDiff);
+
+		/*var l1 = Math.cos(sourceDiff);
 		var m1 = Math.sin(sourceDiff);
 		var l2 = Math.cos(targetDiff);
 		var m2 = Math.sin(targetDiff);
-
 		var elementK = N.mul(k, [
 			[l1*l1, l1*m1, -l1*l2, -l1*m2],
 			[l1*m1, m1*m1, -m1*l2, -m1*m2],
 			[-l1*l2, -m1*l2, l2*l2, l2*m2],
 			[-l1*m2, -m1*m2, l2*m2, m2*m2]
-		]);
+		]);*/
+
+		/*var elementK = Solver.createAxialK(
+			link.section.area, link.material.elasticMod, length,
+			sourceDiff, targetDiff);
 
 		var elementGlobalMap = {
 			0: 2 * connectivityTable[link.id].i,     //ix
 			1: 2 * connectivityTable[link.id].i + 1, //iy
 			2: 2 * connectivityTable[link.id].j,     //jx
 			3: 2 * connectivityTable[link.id].j + 1  //jy
+		};*/
+
+		var elementK = Solver.createFlexureK(
+			link.section.area, link.material.elasticMod, length, link.section.momInertia,
+			sourceDiff, targetDiff);
+
+		var elementGlobalMap = {
+			0: 3 * connectivityTable[link.id].i,     //ix
+			1: 3 * connectivityTable[link.id].i + 1, //iy
+			2: 3 * connectivityTable[link.id].i + 2, //itheta
+			3: 3 * connectivityTable[link.id].j,     //jx
+			4: 3 * connectivityTable[link.id].j + 1, //jy
+			5: 3 * connectivityTable[link.id].j + 2  //jtheta
 		};
 
 		//Add element K to global K
@@ -69,26 +86,34 @@ Solver.solve = function (graph) {
 	graph.nodes.forEach(function (node) {
 		globalA.push(node.rotation);
 		globalA.push(node.rotation);
+		globalA.push(0)
 
 		globalU.push(node.displacement[0]);
 		globalU.push(node.displacement[1]);
+		globalU.push(node.displacement[2]);
 
 		globalF.push(node.force[0] * Math.cos(node.rotation * Math.PI / 180) +
 					 node.force[1] * Math.cos((90-node.rotation) * Math.PI / 180));
 		globalF.push(node.force[0] * Math.sin(node.rotation * Math.PI / 180) +
 					 node.force[1] * Math.sin((90-node.rotation) * Math.PI / 180));
+		globalF.push(node.force[2]);
 
+		globalR.push(0);
 		globalR.push(0);
 		globalR.push(0);
 
 		globalIsFree.push(node.freedom[0]);
 		globalIsFree.push(node.freedom[1]);
+		globalIsFree.push(node.freedom[2]);
 	});
 
 	var indexKey = [];
 	for (var i = 0; i < globalU.length; i++) {
 		indexKey.push(i);
 	}
+
+	console.log("K " + N.prettyPrint(globalK));
+	console.log("F " + N.prettyPrint(globalF));
 
 	//Swap entries in system so active displacements are on the bottom
 	//TODO - preorder system of equations so swapping is not necessary
@@ -107,11 +132,11 @@ Solver.solve = function (graph) {
 	}
 
 	console.log("----------GLOBAL----------")
-	console.log("K " + JSON.stringify(globalK))
-	console.log("U " + JSON.stringify(globalU));
-	console.log("A " + JSON.stringify(globalA));
-	console.log("F " + JSON.stringify(globalF));
-	console.log("I " + JSON.stringify(indexKey));
+	console.log("K " + N.prettyPrint(globalK));
+	console.log("U " + N.prettyPrint(globalU));
+	console.log("A " + N.prettyPrint(globalA));
+	console.log("F " + N.prettyPrint(globalF));
+	console.log("I " + N.prettyPrint(indexKey));
 
 	//Construct matrix equation for active displacements only
 	var size = globalIsFree.length;
@@ -123,10 +148,10 @@ Solver.solve = function (graph) {
 	var activeR = globalR.slice(activeDim);
 
 	console.log("----------ACTIVE----------")
-	console.log("K " + JSON.stringify(activeK));
-	console.log("U " + JSON.stringify(activeU));
-	console.log("A " + JSON.stringify(activeA));
-	console.log("F " + JSON.stringify(activeF));
+	console.log("K " + N.prettyPrint(activeK));
+	console.log("U " + N.prettyPrint(activeU));
+	console.log("A " + N.prettyPrint(activeA));
+	console.log("F " + N.prettyPrint(activeF));
 
 	//Solve active displacements
 	var solvedActiveU = N.solve(activeK, activeF);
@@ -142,68 +167,88 @@ Solver.solve = function (graph) {
 		globalReactionF[i] = reactionF[i];
 	}
 
-	console.log("U " + JSON.stringify(globalU));
-	console.log("Reaction F " + JSON.stringify(globalReactionF));
+	console.log("U " + N.prettyPrint(globalU));
+	console.log("Reaction F " + N.prettyPrint(globalReactionF));
 
 	//Convert rotated values to global axes
 	var rotatedGlobalU = N.rep([size], 0);
 	var rotatedGlobalF = N.rep([size], 0);
 	var rotatedGlobalReactionF = N.rep([size], 0);
 	for (var i = 0; i < size; i++) {
-		var i1 = indexKey[i];
-		var i2 = i1 % 2 === 0 ? i1 + 1 : i1 - 1;
-		var angle = globalA[i] * Math.PI / 180;
-		var component1 = i1 < i2 ? Math.cos(angle) : Math.sin(Math.PI / 2 + angle);
-		var component2 = i1 < i2 ? Math.sin(angle) : Math.cos(Math.PI / 2 + angle);
-		var realI1 = indexKey.indexOf(i1);
-		var realI2 = indexKey.indexOf(i2);
+		if ((indexKey[i] + 1) % 3 === 0) {  //rotation, keep as is
+			var realI = indexKey.indexOf(indexKey[i]);
+			rotatedGlobalU[realI] = globalU[i];
+			rotatedGlobalF[realI] = globalF[i];
+			rotatedGlobalReactionF[realI] = globalReactionF[i];
+		}
+		else {  //displacement, decompose
+			var i1 = indexKey[i];
+			var i2 = i1 % 3 === 0 ? i1 + 1 : i1 - 1;
+			var angle = globalA[i] * Math.PI / 180;
+			var component1 = i1 < i2 ? Math.cos(angle) : Math.sin(Math.PI / 2 + angle);
+			var component2 = i1 < i2 ? Math.sin(angle) : Math.cos(Math.PI / 2 + angle);
+			var realI1 = indexKey.indexOf(i1);
+			var realI2 = indexKey.indexOf(i2);
 
-		rotatedGlobalU[realI1] += globalU[i] * component1;
-		rotatedGlobalU[realI2] += globalU[i] * component2;
-		rotatedGlobalF[realI1] += globalF[i] * component1;
-		rotatedGlobalF[realI2] += globalF[i] * component2;
-		rotatedGlobalReactionF[realI1] += globalReactionF[i] * component1;
-		rotatedGlobalReactionF[realI2] += globalReactionF[i] * component2;
+			rotatedGlobalU[realI1] += globalU[i] * component1;
+			rotatedGlobalU[realI2] += globalU[i] * component2;
+			rotatedGlobalF[realI1] += globalF[i] * component1;
+			rotatedGlobalF[realI2] += globalF[i] * component2;
+			rotatedGlobalReactionF[realI1] += globalReactionF[i] * component1;
+			rotatedGlobalReactionF[realI2] += globalReactionF[i] * component2;
+		}
 	}
 	globalU = rotatedGlobalU;
 	globalF = rotatedGlobalF;
 	globalReactionF = rotatedGlobalReactionF;
 
 	console.log("----------NEW GLOBAL----------")
-	console.log("U " + JSON.stringify(globalU));
-	console.log("F " + JSON.stringify(globalF));
-	console.log("Reaction F " + JSON.stringify(globalReactionF));
+	console.log("U " + N.prettyPrint(globalU));
+	console.log("F " + N.prettyPrint(globalF));
+	console.log("Reaction F " + N.prettyPrint(globalReactionF));
 
 	//Compute element internal forces
 	//TODO move this to a separate function to make it optional or user selectable
 	console.log("----------ELEMENT INTERNAL----------")
 	graph.links.forEach(function (link) {
-		var length = Math.sqrt(N.sum(N.pow(N.sub(link.target.position, link.source.position), 2)));
-		var k = link.section.area * link.material.elasticMod / length;
-		var cos = (link.target.position[0] - link.source.position[0]) / length;
-		var sin = (link.target.position[1] - link.source.position[1]) / length;
-
+		var dx = link.target.position[0] - link.source.position[0];
+		var dy = link.target.position[1] - link.source.position[1];
+		var linkAngle = Math.atan2(dy, dx);
+		var sourceAngle = link.source.rotation * Math.PI / 180;
+		var targetAngle = link.target.rotation * Math.PI / 180;
+		var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
+		var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
+		var c1 = Math.cos(sourceDiff);
+		var s1 = Math.sin(sourceDiff);
+		var c2 = Math.cos(targetDiff);
+		var s2 = Math.sin(targetDiff);
 		var elementR = [
-			[cos, sin, 0, 0],
-			[0, 0, cos, sin]
+			[c1 , s1, 0, 0  , 0 , 0],
+			[-s1, c1, 0, 0  , 0 , 0],
+			[0  , 0 , 1, 0  , 0 , 0],
+			[0  , 0 , 0, c2 , s2, 0],
+			[0  , 0 , 0, -s2, c2, 0],
+			[0  , 0 , 0, 0  , 0 , 1]
 		];
 
 		var elementGlobalMap = {
-			0: 2 * connectivityTable[link.id].i,     //ix
-			1: 2 * connectivityTable[link.id].i + 1, //iy
-			2: 2 * connectivityTable[link.id].j,     //jx
-			3: 2 * connectivityTable[link.id].j + 1  //jy
+			0: 3 * connectivityTable[link.id].i,     //ix
+			1: 3 * connectivityTable[link.id].i + 1, //iy
+			2: 3 * connectivityTable[link.id].i + 2, //jx
+			3: 3 * connectivityTable[link.id].j,     //jy
+			4: 3 * connectivityTable[link.id].j + 1, //jy
+			5: 3 * connectivityTable[link.id].j + 2  //jy
 		};
 
 		var elementGlobalU = [];
-		for (var i = 0; i < 4; i++) {
+		for (var i = 0; i < 6; i++) {
 			var idx = indexKey.indexOf(elementGlobalMap[i]);
 			elementGlobalU.push(globalU[idx]);
 		}
 
 		var elementU = N.dot(elementR, elementGlobalU);
-		
-		var interpolationFunc = [-1 / length, 1 / length];
+		var length = Math.sqrt(N.sum(N.pow(N.sub(link.target.position, link.source.position), 2)));
+		var interpolationFunc = [-1 / length, 0, 0, 1 / length, 0, 0];
 
 		var strain = N.dot(interpolationFunc, elementU);
 		var stress = link.material.elasticMod * strain;
@@ -211,6 +256,57 @@ Solver.solve = function (graph) {
 		var s = stress < 0 ? "COMPRESSION" : "TENSION";
 		console.log(link.id + ": " + stress.toFixed(3) + " " + s);
 	});
+}
+
+Solver.createAxialK = function (A, E, L, theta1, theta2) {
+	var k = A * E / L;
+	var ke = [
+		[ k, -k],
+		[-k,  k]
+	];
+
+	var c1 = Math.cos(theta1);
+	var s1 = Math.sin(theta1);
+	var c2 = Math.cos(theta2);
+	var s2 = Math.sin(theta2);
+	var R = [
+		[c1, s1, 0 , 0 ],
+		[0 , 0 , c2, s2]
+	];
+
+	var K = numeric.dot(numeric.transpose(R), numeric.dot(ke, R));
+	return K;
+}
+
+Solver.createFlexureK = function (A, E, L, I, theta1, theta2) {
+	var EL  = E / L;
+	var EL2 = E / Math.pow(L, 2);
+	var EL3 = E / Math.pow(L, 3);
+	var ke = [ 
+		[A*EL , 0        , 0       , -A*EL, 0        , 0       ],
+		[0    , 12*I*EL3 , 6*I*EL2 , 0    , -12*I*EL3, 6*I*EL2 ],
+		[0    , 6*I*EL2  , 4*I*EL  , 0    , -6*I*EL2 , 2*I*EL  ],
+		[-A*EL, 0        , 0       , A*EL , 0        , 0       ],
+		[0    , -12*I*EL3, -6*I*EL2, 0    , 12*I*EL3 , -6*I*EL2],
+		[0    , 6*I*EL2  , 2*I*EL  , 0    , -6*I*EL2 , 4*I*EL  ]
+	];
+
+	var c1 = Math.cos(theta1);
+	var s1 = Math.sin(theta1);
+	var c2 = Math.cos(theta2);
+	var s2 = Math.sin(theta2);
+	var R = [
+		[c1 , s1, 0, 0  , 0 , 0],
+		[-s1, c1, 0, 0  , 0 , 0],
+		[0  , 0 , 1, 0  , 0 , 0],
+		[0  , 0 , 0, c2 , s2, 0],
+		[0  , 0 , 0, -s2, c2, 0],
+		[0  , 0 , 0, 0  , 0 , 1]
+	];
+
+	var K = numeric.dot(numeric.transpose(R), numeric.dot(ke, R));
+	console.log(numeric.prettyPrint(K))
+	return K;
 }
 
 Util = {};
