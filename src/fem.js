@@ -590,7 +590,11 @@ function setupDOM() {
 	}
 
 	document.getElementById("solve-button").onclick = function () {
-		Solver.solve(graph);
+		var solver = new Solver()
+		solver.solve(graph);
+		graph.links.forEach(function (link) {
+			solver.solveElement(link);
+		});
 	}
 
 	var canvasWrapper = document.getElementById("canvas-wrapper");
