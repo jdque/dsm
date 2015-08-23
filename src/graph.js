@@ -223,6 +223,97 @@ Graph.prototype.on = function (type, func) {
 	this.notifier.addListener(type, func);
 }
 
+//------------------------------------------------------------------------------
+
+function ResultGraph(sourceGraph) {
+	this.sourceGraph = sourceGraph;
+	this.nodes = [];
+	this.links = [];
+
+	sourceGraph.nodes.forEach(function (node) {
+		var baseIdx = sourceGraph.nodes.indexOf(node) * 3;
+		var node = new ResultGraph.Node({
+			nodeRef: node
+		});
+		this.addNode(node);
+	}.bind(this));
+
+	sourceGraph.links.forEach(function (link) {
+		var source = this.findNodeByRefId(link.source.id);
+		var target = this.findNodeByRefId(link.target.id);
+		var link = new ResultGraph.Link({
+			linkRef: link,
+			source: source,
+			target: target
+		});
+		this.addLink(link);
+	}.bind(this));
+}
+
+ResultGraph.Node = function (settings) {
+	this.nodeRef      = settings.nodeRef      || null;
+	this.displacement = settings.displacement || [0, 0, 0];
+	this.reaction     = settings.reaction     || [0, 0, 0];
+}
+
+ResultGraph.Link = function (settings) {
+	this.linkRef     = settings.linkRef     || null;
+	this.source      = settings.source      || null;
+	this.target      = settings.target      || null;
+	this.axialStrain = settings.axialStrain || null;
+	this.axialStress = settings.axialStress || null;
+}
+
+ResultGraph.prototype.addNode = function (node) {
+	this.nodes.push(node);
+}
+
+ResultGraph.prototype.addLink = function (link) {
+	this.links.push(link);
+}
+
+ResultGraph.prototype.removeNode = function (node) {
+	var links = this.getLinks(node);
+	links.forEach(function (link) {
+		this.removeLink(link);
+	}.bind(this));
+
+	this.nodes.splice(this.nodes.indexOf(node), 1);
+}
+
+ResultGraph.prototype.removeLink = function (link) {
+	this.links.splice(this.links.indexOf(link), 1);
+}
+
+ResultGraph.prototype.updateNode = function (node, properties) {
+	for (var key in properties) {
+		if (properties.hasOwnProperty(key)) {
+			node[key] = properties[key];
+		}
+	}
+}
+
+ResultGraph.prototype.updateLink = function (link, properties) {
+	for (var key in properties) {
+		if (properties.hasOwnProperty(key)) {
+			link[key] = properties[key];
+		}
+	}
+}
+
+ResultGraph.prototype.findNodeByRefId = function (id) {
+	var foundItems = this.nodes.filter(function (node) {
+		return node.nodeRef.id === id;
+	});
+
+	if (foundItems.length === 1)
+		return foundItems[0];
+
+	return null;
+}
+
+//------------------------------------------------------------------------------
+
 var test = {
 	nodes: [
 		{

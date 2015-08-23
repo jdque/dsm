@@ -1,5 +1,4 @@
 Solver = function () {
-	this.result = null;
 }
 
 //This solves KU + F = R
@@ -9,8 +8,9 @@ Solver = function () {
 //R = internal (reaction) force
 //A = nodal support angle
 //IsFree = degree of freedom (true/false)
-Solver.prototype.solve = function (graph) {
+Solver.prototype.solveNodes = function (resultGraph) {
 	var N = numeric;
+	var graph = resultGraph.sourceGraph;
 
 	//Element-node connectivity table
 	//Assign nodes integer ID's based on their array index
@@ -209,33 +209,34 @@ Solver.prototype.solve = function (graph) {
 	console.log("F " + N.prettyPrint(globalF));
 	console.log("Reaction F " + N.prettyPrint(globalReactionF));
 
-	this.result = {
-		graph: graph,
-		connectivityTable: connectivityTable,
-		indexKey: indexKey,
-		globalU: globalU,
-		globalReactionF: globalReactionF
-	};
+	//Add displacements and reactions to nodes in result graph
+	graph.nodes.forEach(function (node) {
+		var resultNode = resultGraph.findNodeByRefId(node.id);
+		var baseIdx = graph.nodes.indexOf(node) * 3;
+		resultGraph.updateNode(resultNode, {
+			displacement: [globalU[indexKey.indexOf(baseIdx)],
+						   globalU[indexKey.indexOf(baseIdx+1)],
+						   globalU[indexKey.indexOf(baseIdx+2)]],
+			reaction: [globalReactionF[indexKey.indexOf(baseIdx)],
+			           globalReactionF[indexKey.indexOf(baseIdx+1)],
+			           globalReactionF[indexKey.indexOf(baseIdx+2)]]
+		});
+	});
 }
 
-Solver.prototype.solveElement = function (link) {
-	if (!this.result || this.result.graph.links.indexOf(link) < 0) {
-		return;
-	}
-
+Solver.prototype.solveElement = function (resultLink, resultGraph) {
 	var N = numeric;
-	var graph = this.result.graph;
-	var connectivityTable = this.result.connectivityTable;
-	var indexKey = this.result.indexKey;
-	var globalU = this.result.globalU;
+	var linkRef = resultLink.linkRef;
+	var source = resultLink.source;
+	var target = resultLink.target;
 
-	var dx = link.target.position[0] - link.source.position[0];
-	var dy = link.target.position[1] - link.source.position[1];
-	var linkAngle = Math.atan2(dy, dx);
-	var sourceAngle = link.source.rotation * Math.PI / 180;
-	var targetAngle = link.target.rotation * Math.PI / 180;
-	var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
-	var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
+	var dx = linkRef.target.position[0] - linkRef.source.position[0];
+	var dy = linkRef.target.position[1] - linkRef.source.position[1];
+	var angle = Math.atan2(dy, dx);
+	var sourceAngle = linkRef.source.rotation * Math.PI / 180;
+	var targetAngle = linkRef.target.rotation * Math.PI / 180;
+	var sourceDiff = angle > sourceAngle ? angle - sourceAngle : -(sourceAngle - angle);
+	var targetDiff = angle > targetAngle ? angle - targetAngle : -(targetAngle - angle);
 	var c1 = Math.cos(sourceDiff);
 	var s1 = Math.sin(sourceDiff);
 	var c2 = Math.cos(targetDiff);
@@ -249,30 +250,23 @@ Solver.prototype.solveElement = function (link) {
 		[0  , 0 , 0, 0  , 0 , 1]
 	];
 
-	var elementGlobalMap = {
-		0: 3 * connectivityTable[link.id].i,     //ix
-		1: 3 * connectivityTable[link.id].i + 1, //iy
-		2: 3 * connectivityTable[link.id].i + 2, //jx
-		3: 3 * connectivityTable[link.id].j,     //jy
-		4: 3 * connectivityTable[link.id].j + 1, //jy
-		5: 3 * connectivityTable[link.id].j + 2  //jy
-	};
-
-	var elementGlobalU = [];
-	for (var i = 0; i < 6; i++) {
-		var idx = indexKey.indexOf(elementGlobalMap[i]);
-		elementGlobalU.push(globalU[idx]);
-	}
-
+	//Convert displacements to element local coordinates
+	var elementGlobalU = source.displacement.concat(target.displacement);
 	var elementU = N.dot(elementR, elementGlobalU);
-	var length = Math.sqrt(N.sum(N.pow(N.sub(link.target.position, link.source.position), 2)));
-	var axialInterpolation = [-1 / length, 0, 0, 1 / length, 0, 0];
 
+	//Strain and stress
+	var length = Math.sqrt(N.sum(N.pow(N.sub(linkRef.target.position, linkRef.source.position), 2)));
+	var axialInterpolation = [-1 / length, 0, 0, 1 / length, 0, 0];
 	var strain = N.dot(axialInterpolation, elementU);
-	var stress = link.material.elasticMod * strain;
+	var stress = linkRef.material.elasticMod * strain;
 
 	var s = stress < 0 ? "COMPRESSION" : "TENSION";
-	console.log(link.id + ": " + stress.toFixed(3) + " " + s);
+	console.log(linkRef.id + ": " + stress.toFixed(3) + " " + s);
+
+	resultGraph.updateLink(resultLink, {
+		strain: strain,
+		stress: stress
+	});
 }
 
 Solver.prototype.createAxialK = function (A, E, L, theta1, theta2) {
