@@ -25,44 +25,17 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	//Construct global K
 	var globalK = N.rep([graph.nodes.length * 3, graph.nodes.length * 3], 0);
 	graph.links.forEach(function (link) {
-		var length = Math.sqrt(N.sum(N.pow(N.sub(link.target.position, link.source.position), 2)));
-		var k = link.section.area * link.material.elasticMod / length;
+		var length = N.norm2(N.sub(link.target.position, link.source.position));
 
-		var dx = link.target.position[0] - link.source.position[0];
-		var dy = link.target.position[1] - link.source.position[1];
-		var linkAngle = Math.atan2(dy, dx);
-		var sourceAngle = link.source.rotation * Math.PI / 180;
-		var targetAngle = link.target.rotation * Math.PI / 180;
-		var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
-		var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
+		var elementR = this._createFlexureR(
+			link.source.position, link.target.position,
+			link.source.rotation, link.target.rotation);
 
-		/*var l1 = Math.cos(sourceDiff);
-		var m1 = Math.sin(sourceDiff);
-		var l2 = Math.cos(targetDiff);
-		var m2 = Math.sin(targetDiff);
-		var elementK = N.mul(k, [
-			[l1*l1, l1*m1, -l1*l2, -l1*m2],
-			[l1*m1, m1*m1, -m1*l2, -m1*m2],
-			[-l1*l2, -m1*l2, l2*l2, l2*m2],
-			[-l1*m2, -m1*m2, l2*m2, m2*m2]
-		]);*/
-
-		/*var elementK = this.createAxialK(
-			link.section.area, link.material.elasticMod, length,
-			sourceDiff, targetDiff);
-
-		var elementGlobalMap = {
-			0: 2 * connectivityTable[link.id].i,     //ix
-			1: 2 * connectivityTable[link.id].i + 1, //iy
-			2: 2 * connectivityTable[link.id].j,     //jx
-			3: 2 * connectivityTable[link.id].j + 1  //jy
-		};*/
-
-		var elementK = this.createFlexureK(
+		var elementK = this._createFlexureK(
 			link.section.area, link.material.elasticMod, length, link.section.momInertia,
-			sourceDiff, targetDiff);
+			elementR);
 
-		var elementGlobalMap = {
+		var localGlobalIdxMap = {
 			0: 3 * connectivityTable[link.id].i,     //ix
 			1: 3 * connectivityTable[link.id].i + 1, //iy
 			2: 3 * connectivityTable[link.id].i + 2, //itheta
@@ -71,10 +44,17 @@ Solver.prototype.solveNodes = function (resultGraph) {
 			5: 3 * connectivityTable[link.id].j + 2  //jtheta
 		};
 
+		/*var localGlobalIdxMap = {
+			0: 2 * connectivityTable[link.id].i,     //ix
+			1: 2 * connectivityTable[link.id].i + 1, //iy
+			2: 2 * connectivityTable[link.id].j,     //jx
+			3: 2 * connectivityTable[link.id].j + 1  //jy
+		};*/
+
 		//Add element K to global K
 		for (var y = 0; y < elementK.length; y++) {
 			for (var x = 0; x < elementK[y].length; x++) {
-				globalK[elementGlobalMap[y]][elementGlobalMap[x]] += elementK[y][x];
+				globalK[localGlobalIdxMap[y]][localGlobalIdxMap[x]] += elementK[y][x];
 			}
 		}
 	}.bind(this));
@@ -86,36 +66,23 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	var globalR = [];
 	var globalIsFree = [];
 	graph.nodes.forEach(function (node) {
-		globalA.push(node.rotation);
-		globalA.push(node.rotation);
-		globalA.push(0)
-
-		globalU.push(node.displacement[0]);
-		globalU.push(node.displacement[1]);
-		globalU.push(node.displacement[2]);
-
-		globalF.push(node.force[0] * Math.cos(node.rotation * Math.PI / 180) +
-					 node.force[1] * Math.cos((90-node.rotation) * Math.PI / 180));
-		globalF.push(node.force[0] * Math.sin(node.rotation * Math.PI / 180) +
-					 node.force[1] * Math.sin((90-node.rotation) * Math.PI / 180));
-		globalF.push(node.force[2]);
-
-		globalR.push(0);
-		globalR.push(0);
-		globalR.push(0);
-
-		globalIsFree.push(node.freedom[0]);
-		globalIsFree.push(node.freedom[1]);
-		globalIsFree.push(node.freedom[2]);
+		globalA.push.apply(globalA, [node.rotation, node.rotation, 0]);
+		globalU.push.apply(globalU, node.displacement);
+		globalF.push.apply(globalF, [
+			node.force[0] * Math.cos(node.rotation * Math.PI / 180) +
+			node.force[1] * Math.cos((90-node.rotation) * Math.PI / 180),
+			node.force[0] * Math.sin(node.rotation * Math.PI / 180) +
+			node.force[1] * Math.sin((90-node.rotation) * Math.PI / 180),
+			node.force[2]
+		]);
+		globalR.push.apply(globalR, [0, 0, 0]);
+		globalIsFree.push.apply(globalIsFree, node.freedom);
 	});
 
 	var indexKey = [];
 	for (var i = 0; i < globalU.length; i++) {
 		indexKey.push(i);
 	}
-
-	console.log("K " + N.prettyPrint(globalK));
-	console.log("F " + N.prettyPrint(globalF));
 
 	//Swap entries in system so active displacements are on the bottom
 	//TODO - preorder system of equations so swapping is not necessary
@@ -173,15 +140,15 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	console.log("Reaction F " + N.prettyPrint(globalReactionF));
 
 	//Convert rotated values to global axes
-	var rotatedGlobalU = N.rep([size], 0);
-	var rotatedGlobalF = N.rep([size], 0);
-	var rotatedGlobalReactionF = N.rep([size], 0);
+	var alignedGlobalU = N.rep([size], 0);
+	var alignedGlobalF = N.rep([size], 0);
+	var alignedGlobalReactionF = N.rep([size], 0);
 	for (var i = 0; i < size; i++) {
 		if ((indexKey[i] + 1) % 3 === 0) {  //rotation, keep as is
 			var realI = indexKey.indexOf(indexKey[i]);
-			rotatedGlobalU[realI] = globalU[i];
-			rotatedGlobalF[realI] = globalF[i];
-			rotatedGlobalReactionF[realI] = globalReactionF[i];
+			alignedGlobalU[realI] = globalU[i];
+			alignedGlobalF[realI] = globalF[i];
+			alignedGlobalReactionF[realI] = globalReactionF[i];
 		}
 		else {  //displacement, decompose
 			var i1 = indexKey[i];
@@ -192,17 +159,17 @@ Solver.prototype.solveNodes = function (resultGraph) {
 			var realI1 = indexKey.indexOf(i1);
 			var realI2 = indexKey.indexOf(i2);
 
-			rotatedGlobalU[realI1] += globalU[i] * component1;
-			rotatedGlobalU[realI2] += globalU[i] * component2;
-			rotatedGlobalF[realI1] += globalF[i] * component1;
-			rotatedGlobalF[realI2] += globalF[i] * component2;
-			rotatedGlobalReactionF[realI1] += globalReactionF[i] * component1;
-			rotatedGlobalReactionF[realI2] += globalReactionF[i] * component2;
+			alignedGlobalU[realI1] += globalU[i] * component1;
+			alignedGlobalU[realI2] += globalU[i] * component2;
+			alignedGlobalF[realI1] += globalF[i] * component1;
+			alignedGlobalF[realI2] += globalF[i] * component2;
+			alignedGlobalReactionF[realI1] += globalReactionF[i] * component1;
+			alignedGlobalReactionF[realI2] += globalReactionF[i] * component2;
 		}
 	}
-	globalU = rotatedGlobalU;
-	globalF = rotatedGlobalF;
-	globalReactionF = rotatedGlobalReactionF;
+	globalU = alignedGlobalU;
+	globalF = alignedGlobalF;
+	globalReactionF = alignedGlobalReactionF;
 
 	console.log("----------NEW GLOBAL----------")
 	console.log("U " + N.prettyPrint(globalU));
@@ -213,13 +180,12 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	graph.nodes.forEach(function (node) {
 		var resultNode = resultGraph.findNodeByRefId(node.id);
 		var baseIdx = graph.nodes.indexOf(node) * 3;
+		var ix = indexKey.indexOf(baseIdx);
+		var iy = indexKey.indexOf(baseIdx + 1);
+		var itheta = indexKey.indexOf(baseIdx + 2);
 		resultGraph.updateNode(resultNode, {
-			displacement: [globalU[indexKey.indexOf(baseIdx)],
-						   globalU[indexKey.indexOf(baseIdx+1)],
-						   globalU[indexKey.indexOf(baseIdx+2)]],
-			reaction: [globalReactionF[indexKey.indexOf(baseIdx)],
-			           globalReactionF[indexKey.indexOf(baseIdx+1)],
-			           globalReactionF[indexKey.indexOf(baseIdx+2)]]
+			displacement: [globalU[ix], globalU[iy], globalU[itheta]],
+			reaction: [globalReactionF[ix], globalReactionF[iy], globalReactionF[itheta]]
 		});
 	});
 }
@@ -227,16 +193,64 @@ Solver.prototype.solveNodes = function (resultGraph) {
 Solver.prototype.solveElement = function (resultLink, resultGraph) {
 	var N = numeric;
 	var linkRef = resultLink.linkRef;
-	var source = resultLink.source;
-	var target = resultLink.target;
 
-	var dx = linkRef.target.position[0] - linkRef.source.position[0];
-	var dy = linkRef.target.position[1] - linkRef.source.position[1];
-	var angle = Math.atan2(dy, dx);
-	var sourceAngle = linkRef.source.rotation * Math.PI / 180;
-	var targetAngle = linkRef.target.rotation * Math.PI / 180;
-	var sourceDiff = angle > sourceAngle ? angle - sourceAngle : -(sourceAngle - angle);
-	var targetDiff = angle > targetAngle ? angle - targetAngle : -(targetAngle - angle);
+	var elementR = this._createFlexureR(
+		linkRef.source.position, linkRef.target.position,
+		linkRef.source.rotation, linkRef.target.rotation);
+
+	//Convert displacements to element local coordinates
+	var elementGlobalU = resultLink.source.displacement.concat(resultLink.target.displacement);
+	var elementLocalU = N.dot(elementR, elementGlobalU);
+
+	//Strain and stress
+	var length = N.norm2(N.sub(linkRef.target.position, linkRef.source.position));
+	var axialInterpolation = [-1 / length, 0, 0, 1 / length, 0, 0];
+	var strain = N.dot(axialInterpolation, elementLocalU);
+	var stress = linkRef.material.elasticMod * strain;
+
+	var s = stress < 0 ? "COMPRESSION" : "TENSION";
+	console.log(linkRef.id + ": " + stress.toFixed(3) + " " + s);
+
+	resultGraph.updateLink(resultLink, {
+		axialStrain: strain,
+		axialStress: stress
+	});
+}
+
+Solver.prototype.solveElements = function (resultGraph) {
+	resultGraph.links.forEach(function (link) {
+		this.solveElement(link, resultGraph);
+	}.bind(this));
+}
+
+Solver.prototype._createAxialR = function (sourcePos, targetPos, sourceAngle, targetAngle) {
+	var dx = targetPos[0] - sourcePos[0];
+	var dy = targetPos[1] - sourcePos[1];
+	var linkAngle = Math.atan2(dy, dx);
+	var sourceAngle = sourceAngle * Math.PI / 180;
+	var targetAngle = targetAngle * Math.PI / 180;
+	var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
+	var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
+	var c1 = Math.cos(sourceDiff);
+	var s1 = Math.sin(sourceDiff);
+	var c2 = Math.cos(targetDiff);
+	var s2 = Math.sin(targetDiff);
+	var elementR = [
+		[c1, s1, 0 , 0 ],
+		[0 , 0 , c2, s2]
+	];
+
+	return elementR;
+}
+
+Solver.prototype._createFlexureR = function (sourcePos, targetPos, sourceAngle, targetAngle) {
+	var dx = targetPos[0] - sourcePos[0];
+	var dy = targetPos[1] - sourcePos[1];
+	var linkAngle = Math.atan2(dy, dx);
+	var sourceAngle = sourceAngle * Math.PI / 180;
+	var targetAngle = targetAngle * Math.PI / 180;
+	var sourceDiff = linkAngle > sourceAngle ? linkAngle - sourceAngle : -(sourceAngle - linkAngle);
+	var targetDiff = linkAngle > targetAngle ? linkAngle - targetAngle : -(targetAngle - linkAngle);
 	var c1 = Math.cos(sourceDiff);
 	var s1 = Math.sin(sourceDiff);
 	var c2 = Math.cos(targetDiff);
@@ -250,49 +264,38 @@ Solver.prototype.solveElement = function (resultLink, resultGraph) {
 		[0  , 0 , 0, 0  , 0 , 1]
 	];
 
-	//Convert displacements to element local coordinates
-	var elementGlobalU = source.displacement.concat(target.displacement);
-	var elementU = N.dot(elementR, elementGlobalU);
-
-	//Strain and stress
-	var length = Math.sqrt(N.sum(N.pow(N.sub(linkRef.target.position, linkRef.source.position), 2)));
-	var axialInterpolation = [-1 / length, 0, 0, 1 / length, 0, 0];
-	var strain = N.dot(axialInterpolation, elementU);
-	var stress = linkRef.material.elasticMod * strain;
-
-	var s = stress < 0 ? "COMPRESSION" : "TENSION";
-	console.log(linkRef.id + ": " + stress.toFixed(3) + " " + s);
-
-	resultGraph.updateLink(resultLink, {
-		strain: strain,
-		stress: stress
-	});
+	return elementR;
 }
 
-Solver.prototype.createAxialK = function (A, E, L, theta1, theta2) {
-	var k = A * E / L;
+
+Solver.prototype._createAxialK = function (area, elasticMod, length, R) {
+	var k = area * elasticMod / length;
 	var ke = [
 		[ k, -k],
 		[-k,  k]
 	];
-
-	var c1 = Math.cos(theta1);
-	var s1 = Math.sin(theta1);
-	var c2 = Math.cos(theta2);
-	var s2 = Math.sin(theta2);
-	var R = [
-		[c1, s1, 0 , 0 ],
-		[0 , 0 , c2, s2]
-	];
-
 	var K = numeric.dot(numeric.transpose(R), numeric.dot(ke, R));
+
+	/*var l1 = Math.cos(sourceDiff);
+	var m1 = Math.sin(sourceDiff);
+	var l2 = Math.cos(targetDiff);
+	var m2 = Math.sin(targetDiff);
+	var elementK = N.mul(k, [
+		[l1*l1, l1*m1, -l1*l2, -l1*m2],
+		[l1*m1, m1*m1, -m1*l2, -m1*m2],
+		[-l1*l2, -m1*l2, l2*l2, l2*m2],
+		[-l1*m2, -m1*m2, l2*m2, m2*m2]
+	]);*/
+
 	return K;
 }
 
-Solver.prototype.createFlexureK = function (A, E, L, I, theta1, theta2) {
-	var EL  = E / L;
-	var EL2 = E / Math.pow(L, 2);
-	var EL3 = E / Math.pow(L, 3);
+Solver.prototype._createFlexureK = function (area, elasticMod, length, momInertia, R) {
+	var A = area;
+	var I = momInertia;
+	var EL  = elasticMod / length;
+	var EL2 = elasticMod / Math.pow(length, 2);
+	var EL3 = elasticMod / Math.pow(length, 3);
 	var ke = [ 
 		[A*EL , 0        , 0       , -A*EL, 0        , 0       ],
 		[0    , 12*I*EL3 , 6*I*EL2 , 0    , -12*I*EL3, 6*I*EL2 ],
@@ -301,23 +304,12 @@ Solver.prototype.createFlexureK = function (A, E, L, I, theta1, theta2) {
 		[0    , -12*I*EL3, -6*I*EL2, 0    , 12*I*EL3 , -6*I*EL2],
 		[0    , 6*I*EL2  , 2*I*EL  , 0    , -6*I*EL2 , 4*I*EL  ]
 	];
-
-	var c1 = Math.cos(theta1);
-	var s1 = Math.sin(theta1);
-	var c2 = Math.cos(theta2);
-	var s2 = Math.sin(theta2);
-	var R = [
-		[c1 , s1, 0, 0  , 0 , 0],
-		[-s1, c1, 0, 0  , 0 , 0],
-		[0  , 0 , 1, 0  , 0 , 0],
-		[0  , 0 , 0, c2 , s2, 0],
-		[0  , 0 , 0, -s2, c2, 0],
-		[0  , 0 , 0, 0  , 0 , 1]
-	];
-
 	var K = numeric.dot(numeric.transpose(R), numeric.dot(ke, R));
+
 	return K;
 }
+
+//------------------------------------------------------------------------------
 
 Util = {};
 

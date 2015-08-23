@@ -593,9 +593,7 @@ function setupDOM() {
 		var resultGraph = new ResultGraph(graph);
 		var solver = new Solver();
 		solver.solveNodes(resultGraph);
-		resultGraph.links.forEach(function (link) {
-			solver.solveElement(link, resultGraph);
-		});
+		solver.solveElements(resultGraph);
 		console.log(resultGraph)
 	}
 
