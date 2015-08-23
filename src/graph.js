@@ -223,12 +223,17 @@ Graph.prototype.on = function (type, func) {
 	this.notifier.addListener(type, func);
 }
 
+Graph.prototype.off = function (type, func) {
+	this.notifier.removeListener(type, func);
+}
+
 //------------------------------------------------------------------------------
 
 function ResultGraph(sourceGraph) {
 	this.sourceGraph = sourceGraph;
 	this.nodes = [];
 	this.links = [];
+	this.notifier = new Notifier();
 
 	sourceGraph.nodes.forEach(function (node) {
 		var baseIdx = sourceGraph.nodes.indexOf(node) * 3;
@@ -250,6 +255,13 @@ function ResultGraph(sourceGraph) {
 	}.bind(this));
 }
 
+ResultGraph.Event = {
+	ADD_NODE:    0,
+	ADD_LINK:    1,
+	UPDATE_NODE: 2,
+	UPDATE_LINK: 3
+};
+
 ResultGraph.Node = function (settings) {
 	this.nodeRef      = settings.nodeRef      || null;
 	this.displacement = settings.displacement || [0, 0, 0];
@@ -266,23 +278,12 @@ ResultGraph.Link = function (settings) {
 
 ResultGraph.prototype.addNode = function (node) {
 	this.nodes.push(node);
+	this.notifier.notify(ResultGraph.Event.ADD_NODE, node);
 }
 
 ResultGraph.prototype.addLink = function (link) {
 	this.links.push(link);
-}
-
-ResultGraph.prototype.removeNode = function (node) {
-	var links = this.getLinks(node);
-	links.forEach(function (link) {
-		this.removeLink(link);
-	}.bind(this));
-
-	this.nodes.splice(this.nodes.indexOf(node), 1);
-}
-
-ResultGraph.prototype.removeLink = function (link) {
-	this.links.splice(this.links.indexOf(link), 1);
+	this.notifier.notify(ResultGraph.Event.ADD_LINK, link);
 }
 
 ResultGraph.prototype.updateNode = function (node, properties) {
@@ -291,6 +292,8 @@ ResultGraph.prototype.updateNode = function (node, properties) {
 			node[key] = properties[key];
 		}
 	}
+
+	this.notifier.notify(ResultGraph.Event.UPDATE_NODE, node);
 }
 
 ResultGraph.prototype.updateLink = function (link, properties) {
@@ -299,6 +302,8 @@ ResultGraph.prototype.updateLink = function (link, properties) {
 			link[key] = properties[key];
 		}
 	}
+
+	this.notifier.notify(Graph.Event.UPDATE_LINK, link);
 }
 
 ResultGraph.prototype.findNodeByRefId = function (id) {
@@ -310,6 +315,14 @@ ResultGraph.prototype.findNodeByRefId = function (id) {
 		return foundItems[0];
 
 	return null;
+}
+
+ResultGraph.prototype.on = function (type, func) {
+	this.notifier.addListener(type, func);
+}
+
+ResultGraph.prototype.off = function (type, func) {
+	this.notifier.removeListener(type, func);
 }
 
 //------------------------------------------------------------------------------

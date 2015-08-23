@@ -267,7 +267,6 @@ Solver.prototype._createFlexureR = function (sourcePos, targetPos, sourceAngle, 
 	return elementR;
 }
 
-
 Solver.prototype._createAxialK = function (area, elasticMod, length, R) {
 	var k = area * elasticMod / length;
 	var ke = [
