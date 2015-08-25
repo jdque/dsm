@@ -185,7 +185,8 @@ Solver.prototype.solveNodes = function (resultGraph) {
 		var itheta = indexKey.indexOf(baseIdx + 2);
 		resultGraph.updateNode(resultNode, {
 			displacement: [globalU[ix], globalU[iy], globalU[itheta]],
-			reaction: [globalReactionF[ix], globalReactionF[iy], globalReactionF[itheta]]
+			reaction: [globalReactionF[ix], globalReactionF[iy], globalReactionF[itheta]],
+			position: [node.position[0] + globalU[ix], node.position[1] + globalU[iy]]
 		});
 	});
 }

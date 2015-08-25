@@ -10,6 +10,17 @@ var Style = {
 	    strokeWidth: 4
 	},
 
+	ResultNode: {
+		fill: 'blue',
+		radius: 4
+	},
+
+	ResultLink: {
+		fill: 'blue',
+	    stroke: 'blue',
+	    strokeWidth: 2
+	},
+
 	PinSupport: {
 		points: [0, 0, -12, 24, 12, 24, 0, 0],
 		width: 24,

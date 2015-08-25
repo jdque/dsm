@@ -266,6 +266,7 @@ ResultGraph.Node = function (settings) {
 	this.nodeRef      = settings.nodeRef      || null;
 	this.displacement = settings.displacement || [0, 0, 0];
 	this.reaction     = settings.reaction     || [0, 0, 0];
+	this.position     = settings.position     || [0, 0];
 }
 
 ResultGraph.Link = function (settings) {
@@ -304,6 +305,14 @@ ResultGraph.prototype.updateLink = function (link, properties) {
 	}
 
 	this.notifier.notify(Graph.Event.UPDATE_LINK, link);
+}
+
+ResultGraph.prototype.getLinks = function (node) {
+	var links = this.links.filter(function (link) {
+		return link.source === node || link.target === node;
+	});
+
+	return links;
 }
 
 ResultGraph.prototype.findNodeByRefId = function (id) {
@@ -457,7 +466,7 @@ var test3 = {
 			displacement: [0, 0, 0],
 			freedom: [true, true, true],
 			rotation: 0,
-			force: [0, -20, 0]
+			force: [0, -100, 0]
 		}
 	],
 	elements: [
