@@ -197,7 +197,7 @@ Solver.prototype.solveElement = function (resultLink, resultGraph) {
 
 	var elementR = this._createFlexureR(
 		linkRef.source.position, linkRef.target.position,
-		linkRef.source.rotation, linkRef.target.rotation);
+		0, 0);
 
 	//Convert displacements to element local coordinates
 	var elementGlobalU = resultLink.source.displacement.concat(resultLink.target.displacement);

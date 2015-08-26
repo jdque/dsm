@@ -472,22 +472,22 @@ var test3 = {
 	elements: [
 		{
 			id: "a",
-			source: 2,
-			target: 1,
+			source: 1,
+			target: 2,
 			material: "steel",
 			section: "spar"
 		},
 		{
 			id: "b",
-			source: 3,
-			target: 1,
+			source: 1,
+			target: 3,
 			material: "steel",
 			section: "spar"
 		},
 		{
 			id: "c",
-			source: 2,
-			target: 3	,
+			source: 3,
+			target: 2,
 			material: "steel",
 			section: "spar"
 		}

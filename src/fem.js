@@ -247,6 +247,7 @@ GraphRenderer.prototype.addNode = function (node) {
 GraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
+
 	var linkLine = LinkLine.create(fromNode, toNode);
 	canvas.add(linkLine);
 	linkLine.moveToBottom();
