@@ -275,6 +275,7 @@ ResultGraph.Link = function (settings) {
 	this.target      = settings.target      || null;
 	this.axialStrain = settings.axialStrain || null;
 	this.axialStress = settings.axialStress || null;
+	this.deflection  = settings.deflection  || [];
 }
 
 ResultGraph.prototype.addNode = function (node) {
@@ -502,7 +503,7 @@ var test3 = {
 		{
 			id: "spar",
 			area: 100,
-			momInertia: 1
+			momInertia: 1000000
 		}
 	]
 };

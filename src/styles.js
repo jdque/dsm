@@ -21,6 +21,16 @@ var Style = {
 	    strokeWidth: 2
 	},
 
+	FixedSupport: {
+		points: [0, 0, -12, 24, 12, 24, 0, 0],
+		width: 24,
+		height: 24,
+		fill: 'red',
+		stroke: 'black',
+		strokeWidth: 1,
+		closed: true
+	},
+
 	PinSupport: {
 		points: [0, 0, -12, 24, 12, 24, 0, 0],
 		width: 24,

@@ -212,9 +212,33 @@ Solver.prototype.solveElement = function (resultLink, resultGraph) {
 	var s = stress < 0 ? "COMPRESSION" : "TENSION";
 	console.log(linkRef.id + ": " + stress.toFixed(3) + " " + s);
 
+	//Calculate deflections along length of element
+	var deflection = [];
+	var L  = length;
+	var L2 = Math.pow(length, 2);
+	var L3 = Math.pow(length, 3);
+	for (var x = 0, len = length.toFixed(0); x < len; x++) {
+		var x2 = Math.pow(x, 2);
+		var x3 = Math.pow(x, 3);
+		var coefficients = [
+			1 - 3*x2/L2 + 2*x3/L3,
+			x - 2*x2/L + x3/L2,
+			3*x2/L2 - 2*x3/L3,
+			x3/L2 - x2/L
+		];
+		var endDeflections = [
+			elementLocalU[1],
+			elementLocalU[2],
+			elementLocalU[4],
+			elementLocalU[5]
+		];
+		deflection.push(N.dot(coefficients, endDeflections));
+	}
+
 	resultGraph.updateLink(resultLink, {
 		axialStrain: strain,
-		axialStress: stress
+		axialStress: stress,
+		deflection: deflection
 	});
 }
 

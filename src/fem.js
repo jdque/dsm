@@ -96,39 +96,8 @@ function Support(settings) {
 	Attachment.apply(this);
 }
 
-Support.createRoller = function (rotation, nodeCircle) {
-	var support = new Support(Style.RollerSupport);
-	support.setAttrs({
-		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = nodeCircle.height() / 2;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(support)
-	});
-	support.on('dragmove', function () {
-		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
-	});
-	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
-
-	return support;
-}
-
-Support.createPin = function (rotation, nodeCircle) {
-	var support = new Support(Style.PinSupport);
+Support.createSupport = function (rotation, nodeCircle, style) {
+	var support = new Support(style);
 	support.setAttrs({
 		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
 		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
@@ -264,17 +233,18 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var yFree = node.freedom[1];
 	var rotFree = node.freedom[2];
 	if (!xFree & !yFree & !rotFree) {
-		//fixed support
+		var fixedSupport = Support.createSupport(-node.rotation, renderNode, Style.FixedSupport);
+		this.canvas.add(fixedSupport);
 	}
 	else if (!xFree && !yFree && rotFree) {
-		var pinSupport = Support.createPin(-node.rotation, renderNode);
+		var pinSupport = Support.createSupport(-node.rotation, renderNode, Style.PinSupport);
 		this.canvas.add(pinSupport);
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && !rotFree) {
 		//slider support
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && rotFree) {
-		var rollerSupport = Support.createRoller(-node.rotation, renderNode);
+		var rollerSupport = Support.createSupport(-node.rotation, renderNode, Style.RollerSupport);
 		this.canvas.add(rollerSupport);
 	}
 
@@ -289,7 +259,7 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 GraphRenderer.prototype.removeNode = function (node) {
 	var links = this.graph.getLinks(node);
 	links.forEach(function (link) {
-		this.removeLink(link);	
+		this.removeLink(link);
 	}.bind(this));
 
 	this.removeNodeAttachments(node);
@@ -594,7 +564,7 @@ GridRenderer.prototype.snapObject = function (object, anchor) {
 	}
 
 	object.setAttrs({
-		x: x, 
+		x: x,
 		y: y
 	});
 }
@@ -685,7 +655,7 @@ function addLinkState() {
 	canvas.add(linkLine);
 	linkLine.moveToBottom();
 	canvas.draw();
-	
+
 	this.activeLine = linkLine;
 	this.startNodeCircle = selectedObject;
 
@@ -713,7 +683,7 @@ function addLinkState() {
 		var mat = new Graph.Material({id: "steel", elasticMod: 4});
 		graph.addMaterial(mat);
 
-		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1});
+		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
 		graph.addSection(sec);
 
 		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
@@ -743,6 +713,14 @@ function setupDOM() {
 		}
 	}
 
+	document.getElementById("fixed-button").onclick = function () {
+		var selectedObject = mainSelection.get();
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+			var node = graphRenderer.getGraphNode(selectedObject);
+			graph.updateNode(node, {freedom: [false, false, false]});
+		}
+	}
+
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
@@ -756,7 +734,7 @@ function setupDOM() {
 		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [true, false, true]});
-		}	
+		}
 	}
 
 	document.getElementById("force-button").onclick = function () {
@@ -818,8 +796,8 @@ function initialize() {
 
 	stage = new Konva.Stage({
 		container: 'canvas-wrapper',
-		width: 640,
-		height: 480
+		width: 1024,
+		height: 768
 	});
 
 	var gridLayer = new Konva.Layer();
