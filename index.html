@@ -1,12 +1,11 @@
 <html>
 	<head>
-		<script src="lib/konva-0.9.5.js"></script>
-		<script src="lib/numeric-1.2.6.js"></script>
-		<script src="src/common.js"></script>
-		<script src="src/graph.js"></script>
-		<script src="src/styles.js"></script>
-		<script src="src/fem.js"></script>
-		<script src="src/solver.js"></script>
+		<script src="lib/system-0.19.3.js"></script>
+		<script>
+			System.import('src/fem.js').then(function (app) {
+				app.run();
+			});
+		</script>
 	</head>
 	<body style="background-color:#eeeeee">
 		<div id="canvas-wrapper" style="outline:none; width:640px; height:480px; overflow:scroll">

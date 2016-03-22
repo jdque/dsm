@@ -1,5 +1,6 @@
-Solver = function () {
-}
+var N = require('../../lib/numeric-1.2.6.js');
+
+function Solver() {}
 
 //This solves KU + F = R
 //K = stiffness matrix
@@ -320,7 +321,7 @@ Solver.prototype._createFlexureK = function (area, elasticMod, length, momInerti
 	var EL  = elasticMod / length;
 	var EL2 = elasticMod / Math.pow(length, 2);
 	var EL3 = elasticMod / Math.pow(length, 3);
-	var ke = [ 
+	var ke = [
 		[A*EL , 0        , 0       , -A*EL, 0        , 0       ],
 		[0    , 12*I*EL3 , 6*I*EL2 , 0    , -12*I*EL3, 6*I*EL2 ],
 		[0    , 6*I*EL2  , 4*I*EL  , 0    , -6*I*EL2 , 2*I*EL  ],
@@ -350,11 +351,15 @@ Util.swapCols2D = function (mat, i, j) {
 	var temp = numeric.getBlock(mat, [0, i], [height - 1, i]);
 
 	numeric.setBlock(mat, [0, i], [height - 1, i], numeric.getBlock(mat, [0, j], [height - 1, j]));
-	numeric.setBlock(mat, [0, j], [height - 1, j], temp);	
+	numeric.setBlock(mat, [0, j], [height - 1, j], temp);
 }
 
 Util.swapRows1D = function (vec, i, j) {
 	var temp = vec[i];
 	vec[i] = vec[j];
 	vec[j] = temp;
+}
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = Solver;
 }

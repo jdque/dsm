@@ -1,4 +1,10 @@
-(function () {
+var StateManager = require('./common/state_manager.js');
+var SelectionSet = require('./common/selection_set.js');
+var Graph = require('./model/graph.js');
+var ResultGraph = require('./model/result_graph.js');
+var Solver = require('./analysis/solver.js');
+var Style = require('./ui/style.js');
+var Interactables = require('./ui/interactables.js');
 
 var appState;
 var stage;
@@ -9,126 +15,6 @@ var graphRenderer;
 var resultRenderer;
 var gridRenderer;
 var mainSelection;
-
-//------------------------------------------------------------------------------
-
-function NodeCircle(settings) {
-	Konva.Circle.apply(this, [settings]);
-	AttachmentContainer.apply(this);
-}
-
-NodeCircle.create = function (x, y, style) {
-	var circle = new NodeCircle(style || Style.Node);
-	circle.setAttrs({
-		x: x,
-		y: y,
-		draggable: true
-	});
-
-	return circle;
-}
-
-NodeCircle.prototype = Object.create(Konva.Circle.prototype);
-extend(NodeCircle.prototype, AttachmentContainer.prototype);
-
-//------------------------------------------------------------------------------
-
-function LinkLine(settings) {
-	Konva.Line.apply(this, [settings]);
-}
-
-LinkLine.create = function (fromNode, toNode, style) {
-	var line = new LinkLine(style || Style.Link);
-	line.setAttrs({
-		points: [fromNode.x(), fromNode.y(), toNode.x(), toNode.y()]
-	});
-
-	return line;
-}
-
-LinkLine.prototype = Object.create(Konva.Line.prototype);
-
-//------------------------------------------------------------------------------
-
-function Force(settings) {
-	Konva.Arrow.apply(this, [settings]);
-	Attachment.apply(this);
-}
-
-Force.create = function (rotation, nodeCircle, style) {
-	var force = new Force(style || Style.Force);
-	force.setAttrs({
-		x: nodeCircle.x() + 64 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() - 64 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = 64;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(force)
-	});
-	force.on('dragmove', function () {
-		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
-	});
-	force.attachTo(nodeCircle, 0, -(nodeCircle.height() / 2 + 32));
-
-	return force;
-}
-
-Force.prototype = Object.create(Konva.Arrow.prototype);
-extend(Force.prototype, Attachment.prototype);
-
-//------------------------------------------------------------------------------
-
-function Support(settings) {
-	Konva.Line.apply(this, [settings]);
-	Attachment.apply(this);
-}
-
-Support.createSupport = function (rotation, nodeCircle, style) {
-	var support = new Support(style);
-	support.setAttrs({
-		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
-		draggable: true,
-		dragBoundFunc: function (pos) {
-			if (!this.isDragging())
-				return pos;
-
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
-			var radius = nodeCircle.height() / 2;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
-			};
-		}.bind(support)
-	});
-	support.on('dragmove', function () {
-		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
-	});
-	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
-
-	return support;
-}
-
-Support.prototype = Object.create(Konva.Line.prototype);
-extend(Support.prototype, Attachment.prototype);
 
 //------------------------------------------------------------------------------
 
@@ -205,7 +91,7 @@ GraphRenderer.prototype.setGraph = function (graph) {
 }
 
 GraphRenderer.prototype.addNode = function (node) {
-	var nodeCircle = NodeCircle.create(node.position[0], this.origin[1] - node.position[1]);
+	var nodeCircle = Interactables.NodeCircle.create(node.position[0], this.origin[1] - node.position[1]);
 	canvas.add(nodeCircle);
 	canvas.draw();
 
@@ -217,7 +103,7 @@ GraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
 
-	var linkLine = LinkLine.create(fromNode, toNode);
+	var linkLine = Interactables.LinkLine.create(fromNode, toNode);
 	canvas.add(linkLine);
 	linkLine.moveToBottom();
 	canvas.draw();
@@ -233,25 +119,25 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var yFree = node.freedom[1];
 	var rotFree = node.freedom[2];
 	if (!xFree & !yFree & !rotFree) {
-		var fixedSupport = Support.createSupport(-node.rotation, renderNode, Style.FixedSupport);
+		var fixedSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.FixedSupport);
 		this.canvas.add(fixedSupport);
 	}
 	else if (!xFree && !yFree && rotFree) {
-		var pinSupport = Support.createSupport(-node.rotation, renderNode, Style.PinSupport);
+		var pinSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.PinSupport);
 		this.canvas.add(pinSupport);
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && !rotFree) {
 		//slider support
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && rotFree) {
-		var rollerSupport = Support.createSupport(-node.rotation, renderNode, Style.RollerSupport);
+		var rollerSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.RollerSupport);
 		this.canvas.add(rollerSupport);
 	}
 
 	//Forces
 	if (node.force[0] !== 0 || node.force[1] !== 0) {
 		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
-		var force = Force.create(angle, renderNode);
+		var force = Interactables.Force.create(angle, renderNode);
 		this.canvas.add(force);
 	}
 }
@@ -403,7 +289,7 @@ ResultGraphRenderer.prototype.setGraph = function (graph) {
 }
 
 ResultGraphRenderer.prototype.addNode = function (node) {
-	var nodeCircle = NodeCircle.create(
+	var nodeCircle = Interactables.NodeCircle.create(
 		node.position[0], this.origin[1] - node.position[1], Style.ResultNode);
 	canvas.add(nodeCircle);
 	canvas.draw();
@@ -415,7 +301,7 @@ ResultGraphRenderer.prototype.addNode = function (node) {
 ResultGraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
-	var linkLine = LinkLine.create(fromNode, toNode, Style.ResultLink);
+	var linkLine = Interactables.LinkLine.create(fromNode, toNode, Style.ResultLink);
 	canvas.add(linkLine);
 	linkLine.moveToBottom();
 	canvas.draw();
@@ -429,7 +315,7 @@ ResultGraphRenderer.prototype.addNodeAttachments = function (node) {
 	//Forces
 	/*if (node.force[0] !== 0 || node.force[1] !== 0) {
 		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
-		var force = Force.create(angle, renderNode);
+		var force = Interactables.Force.create(angle, renderNode);
 		this.canvas.add(force);
 	}*/
 }
@@ -578,7 +464,7 @@ function selectionState() {
 
 	stage.on("dragmove", function (e) {
 		var selectedObject = mainSelection.get();
-		if (selectedObject instanceof NodeCircle) {
+		if (selectedObject instanceof Interactables.NodeCircle) {
 			gridRenderer.snapObject(selectedObject, "center");
 			canvas.draw();
 			graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
@@ -589,13 +475,13 @@ function selectionState() {
 
 	stage.on("dragend", function (e) {
 		var selectedObject = mainSelection.get();
-		if (selectedObject instanceof Support) {
+		if (selectedObject instanceof Interactables.Support) {
 			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
 			graph.updateNode(node, {
 				rotation: -selectedObject.rotation()
 			});
 		}
-		else if (selectedObject instanceof Force) {
+		else if (selectedObject instanceof Interactables.Force) {
 			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
 			var angle = selectedObject.rotation() * Math.PI / 180;
 			var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
@@ -617,7 +503,7 @@ function selectionState() {
 };
 
 function addNodeState() {
-	this.activeNode = NodeCircle.create(0, 0);
+	this.activeNode = Interactables.NodeCircle.create(0, 0);
 	canvas.add(this.activeNode);
 	canvas.draw();
 
@@ -651,7 +537,7 @@ function addNodeState() {
 function addLinkState() {
 	//TODO - deactivate dragging on nodes
 	var selectedObject = mainSelection.get();
-	var linkLine = LinkLine.create(selectedObject, selectedObject);
+	var linkLine = Interactables.LinkLine.create(selectedObject, selectedObject);
 	canvas.add(linkLine);
 	linkLine.moveToBottom();
 	canvas.draw();
@@ -660,7 +546,7 @@ function addLinkState() {
 	this.startNodeCircle = selectedObject;
 
 	stage.on("click", function (e) {
-		if (e.target instanceof NodeCircle && e.target !== this.startNodeCircle) {
+		if (e.target instanceof Interactables.NodeCircle && e.target !== this.startNodeCircle) {
 			this.createNewLink(this.startNodeCircle, e.target);
 			this.activeLine.destroy();
 			this.activeLine = null;
@@ -708,14 +594,14 @@ function setupDOM() {
 
 	document.getElementById("line-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
 			appState.setState('add_link');
 		}
 	}
 
 	document.getElementById("fixed-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [false, false, false]});
 		}
@@ -723,7 +609,7 @@ function setupDOM() {
 
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [false, false, true]});
 		}
@@ -731,7 +617,7 @@ function setupDOM() {
 
 	document.getElementById("roller-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [true, false, true]});
 		}
@@ -739,7 +625,7 @@ function setupDOM() {
 
 	document.getElementById("force-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {force: [0, -100, 0]});
 		}
@@ -764,19 +650,19 @@ function setupDOM() {
 	canvasWrapper.addEventListener("keydown", function (e) {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection') {
-			if (selectedObject instanceof NodeCircle) {
+			if (selectedObject instanceof Interactables.NodeCircle) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject);
 					graph.removeNode(node);
 				}
 			}
-			else if (selectedObject instanceof Force) {
+			else if (selectedObject instanceof Interactables.Force) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
 					graph.updateNode(node, {force: [0, 0, 0]});
 				}
 			}
-			else if (selectedObject instanceof Support) {
+			else if (selectedObject instanceof Interactables.Support) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
 					graph.updateNode(node, {
@@ -791,7 +677,7 @@ function setupDOM() {
 	canvasWrapper.focus();
 }
 
-function initialize() {
+function run() {
 	setupDOM();
 
 	stage = new Konva.Stage({
@@ -831,6 +717,183 @@ function initialize() {
 	appState.setState('selection');
 }
 
-window.onload = initialize;
+//------------------------------------------------------------------------------
 
-})();
+var test = {
+	nodes: [
+		{
+			id: 1,
+			position: [32, 32],
+			displacement: [0, 0],
+			freedom: [true, false],
+			rotation: -45,
+			force: [0, -20]
+		},
+		{
+			id: 2,
+			position: [288, 32],
+			displacement: [0, 0],
+			freedom: [false, false],
+			rotation: 0,
+			force: [0, 0]
+		}
+	],
+	elements: [
+		{
+			id: "a",
+			source: 2,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		}
+	],
+	materials: [
+		{
+			id: "steel",
+			elasticMod: 4
+		}
+	],
+	sections: [
+		{
+			id: "spar",
+			area: 100
+		}
+	]
+};
+
+var test2 = {
+	nodes: [
+		{
+			id: 1,
+			position: [32, 32],
+			displacement: [0, 0],
+			freedom: [true, false],
+			rotation: -45,
+			force: [0, 0]
+		},
+		{
+			id: 2,
+			position: [288, 32],
+			displacement: [0, 0],
+			freedom: [false, false],
+			rotation: 0,
+			force: [0, 0]
+		},
+		{
+			id: 3,
+			position: [160, 160],
+			displacement: [0, 0],
+			freedom: [true, true],
+			rotation: 0,
+			force: [0, -20]
+		}
+	],
+	elements: [
+		{
+			id: "a",
+			source: 2,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "b",
+			source: 3,
+			target: 1,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "c",
+			source: 2,
+			target: 3	,
+			material: "steel",
+			section: "spar"
+		}
+	],
+	materials: [
+		{
+			id: "steel",
+			elasticMod: 4
+		}
+	],
+	sections: [
+		{
+			id: "spar",
+			area: 100
+		}
+	]
+};
+
+var test3 = {
+	nodes: [
+		{
+			id: 1,
+			position: [32, 32],
+			displacement: [0, 0, 0],
+			freedom: [true, false, true],
+			rotation: -45,
+			force: [0, 0, 0]
+		},
+		{
+			id: 2,
+			position: [288, 32],
+			displacement: [0, 0, 0],
+			freedom: [false, false, true],
+			rotation: 0,
+			force: [0, 0, 0]
+		},
+		{
+			id: 3,
+			position: [160, 160],
+			displacement: [0, 0, 0],
+			freedom: [true, true, true],
+			rotation: 0,
+			force: [0, -100, 0]
+		}
+	],
+	elements: [
+		{
+			id: "a",
+			source: 1,
+			target: 2,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "b",
+			source: 1,
+			target: 3,
+			material: "steel",
+			section: "spar"
+		},
+		{
+			id: "c",
+			source: 3,
+			target: 2,
+			material: "steel",
+			section: "spar"
+		}
+	],
+	materials: [
+		{
+			id: "steel",
+			elasticMod: 4
+		}
+	],
+	sections: [
+		{
+			id: "spar",
+			area: 100,
+			momInertia: 1000000
+		}
+	]
+};
+
+var App = {
+    run: run
+};
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = App;
+}
