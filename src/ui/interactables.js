@@ -122,8 +122,8 @@ Force.create = function (rotation, nodeCircle, style) {
 
 			var x1 = nodeCircle.x();
 			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
+			var x2 = this.getStage().getPointerPosition().x;
+			var y2 = this.getStage().getPointerPosition().y;
 			var radius = 64;
 			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 			return {
@@ -163,8 +163,8 @@ Support.createSupport = function (rotation, nodeCircle, style) {
 
 			var x1 = nodeCircle.x();
 			var y1 = nodeCircle.y();
-			var x2 = stage.getPointerPosition().x;
-			var y2 = stage.getPointerPosition().y;
+			var x2 = this.getStage().getPointerPosition().x;
+			var y2 = this.getStage().getPointerPosition().y;
 			var radius = nodeCircle.height() / 2;
 			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 			return {
