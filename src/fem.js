@@ -38,13 +38,13 @@ function selectionState() {
 	stage.on("dragend", function (e) {
 		var selectedObject = mainSelection.get();
 		if (selectedObject instanceof Interactables.Support) {
-			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			graph.updateNode(node, {
 				rotation: -selectedObject.rotation()
 			});
 		}
 		else if (selectedObject instanceof Interactables.Force) {
-			var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			var angle = selectedObject.rotation() * Math.PI / 180;
 			var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
 			graph.updateNode(node, {
@@ -105,11 +105,11 @@ function addLinkState() {
 	canvas.draw();
 
 	this.activeLine = linkLine;
-	this.startNodeCircle = selectedObject;
+	this.startNodeCircle = selectedObject.getParent();
 
 	stage.on("click", function (e) {
-		if (e.target instanceof Interactables.NodeCircle && e.target !== this.startNodeCircle) {
-			this.createNewLink(this.startNodeCircle, e.target);
+		if (e.target.name() === Interactables.NodeCircle.Name && e.target !== this.startNodeCircle) {
+			this.createNewLink(this.startNodeCircle, e.target.getParent());
 			this.activeLine.destroy();
 			this.activeLine = null;
 			this.startNodeCircle = null;
@@ -156,14 +156,14 @@ function setupDOM() {
 
 	document.getElementById("line-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
 			appState.setState('add_link');
 		}
 	}
 
 	document.getElementById("fixed-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [false, false, false]});
 		}
@@ -171,7 +171,7 @@ function setupDOM() {
 
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [false, false, true]});
 		}
@@ -179,7 +179,7 @@ function setupDOM() {
 
 	document.getElementById("roller-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {freedom: [true, false, true]});
 		}
@@ -187,7 +187,7 @@ function setupDOM() {
 
 	document.getElementById("force-button").onclick = function () {
 		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject instanceof Interactables.NodeCircle) {
+		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
 			var node = graphRenderer.getGraphNode(selectedObject);
 			graph.updateNode(node, {force: [0, -100, 0]});
 		}
@@ -212,21 +212,21 @@ function setupDOM() {
 	canvasWrapper.addEventListener("keydown", function (e) {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection') {
-			if (selectedObject instanceof Interactables.NodeCircle) {
+			if (selectedObject.name() === Interactables.NodeCircle.Name) {
 				if (e.keyCode === 46) {
-					var node = graphRenderer.getGraphNode(selectedObject);
+					var node = graphRenderer.getGraphNode(selectedObject.getParent());
 					graph.removeNode(node);
 				}
 			}
 			else if (selectedObject instanceof Interactables.Force) {
 				if (e.keyCode === 46) {
-					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+					var node = graphRenderer.getGraphNode(selectedObject.getParent());
 					graph.updateNode(node, {force: [0, 0, 0]});
 				}
 			}
 			else if (selectedObject instanceof Interactables.Support) {
 				if (e.keyCode === 46) {
-					var node = graphRenderer.getGraphNode(selectedObject.getAttachParent());
+					var node = graphRenderer.getGraphNode(selectedObject.getParent());
 					graph.updateNode(node, {
 						freedom: [true, true, true],
 						rotation: 0

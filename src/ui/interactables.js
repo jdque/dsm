@@ -12,78 +12,43 @@ function extend(destination, source) {
 
 //------------------------------------------------------------------------------
 
-function Attachment() {
-	this.attachParent = null;
-}
-
-Attachment.prototype.attachTo = function (attachmentContainer, offsetX, offsetY) {
-	this.attachParent = attachmentContainer;
-	attachmentContainer.addAttachment(this, offsetX, offsetY);
-}
-
-Attachment.prototype.getAttachParent = function () {
-	return this.attachParent;
-}
-
-function AttachmentContainer(object, offX, offY) {
-	this.attachments = [];
-}
-
-//------------------------------------------------------------------------------
-
-AttachmentContainer.prototype.addAttachment = function (object, offX, offY) {
-	this.attachments.push({
-		object: object,
-		offX: offX,
-		offY: offY
-	});
-}
-
-AttachmentContainer.prototype.removeAttachment = function (object) {
-	for (var i = 0; i < this.attachments.length; i++) {
-		var attachmentObj = this.attachments[i].object;
-		if (attachmentObj === object) {
-			attachmentObj.destroy();
-		}
-	}
-}
-
-AttachmentContainer.prototype.clearAttachments = function () {
-	this.attachments.forEach(function (attachment) {
-		attachment.object.destroy();
-	});
-	this.attachments = [];
-}
-
-AttachmentContainer.prototype.updateAttachments = function () {
-	this.attachments.forEach(function (attachment) {
-		attachment.object.setAttrs({
-			x: this.x() + attachment.offX,
-			y: this.y() + attachment.offY
-		});
-	}.bind(this));
-}
-
-//------------------------------------------------------------------------------
-
 function NodeCircle(settings) {
-	Konva.Circle.apply(this, [settings]);
-	AttachmentContainer.apply(this);
+	Konva.Group.apply(this, [settings]);
 }
+
+NodeCircle.Name = "NodeCircle";
 
 NodeCircle.create = function (x, y, style) {
-	var circle = new NodeCircle(style || Style.Node);
-	circle.setAttrs({
+	var node = new NodeCircle();
+	node.setAttrs({
 		x: x,
 		y: y,
+		width: 10,
+		height: 10,
 		draggable: true
 	});
 
-	return circle;
+	node.circle = new Konva.Circle(style || Style.Node);
+	node.circle.setAttrs({
+		name: NodeCircle.Name,
+		x: 0,
+		y: 0
+	});
+	node.add(node.circle)
+
+	return node;
 }
 
-NodeCircle.prototype = Object.create(Konva.Circle.prototype);
-extend(NodeCircle.prototype, AttachmentContainer.prototype);
+NodeCircle.prototype = Object.create(Konva.Group.prototype);
+
+NodeCircle.prototype.destroyAttachments = function () {
+	var attachments = this.getChildren(function (node) {
+		return node !== this.circle;
+	}.bind(this));
+	attachments.forEach(function (node) {
+		node.destroy();
+	});
+}
 
 //------------------------------------------------------------------------------
 
@@ -106,83 +71,82 @@ LinkLine.prototype = Object.create(Konva.Line.prototype);
 
 function Force(settings) {
 	Konva.Arrow.apply(this, [settings]);
-	Attachment.apply(this);
 }
 
 Force.create = function (rotation, nodeCircle, style) {
 	var force = new Force(style || Style.Force);
 	force.setAttrs({
-		x: nodeCircle.x() + 64 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() - 64 * Math.cos(rotation * Math.PI / 180),
+		x: (nodeCircle.circle.height() / 2 + force.height() + 4) * Math.sin(rotation * Math.PI / 180),
+		y: -(nodeCircle.circle.height() / 2 + force.height() + 4) * Math.cos(rotation * Math.PI / 180),
 		rotation: rotation,
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
 				return pos;
 
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = this.getStage().getPointerPosition().x;
-			var y2 = this.getStage().getPointerPosition().y;
-			var radius = 64;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			var dx = this.getStage().getPointerPosition().x - nodeCircle.x();
+			var dy = this.getStage().getPointerPosition().y - nodeCircle.y();
+			var dlength = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+			if (dlength === 0)
+				return pos;
+
+			var radius = nodeCircle.circle.height() / 2 + force.height() + 4;
+			var scale = radius / dlength;
 			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
+				x: Math.round((dx) * scale) + nodeCircle.x(),
+				y: Math.round((dy) * scale) + nodeCircle.y()
 			};
 		}.bind(force)
 	});
+	force.rotation((Math.atan2(force.y(), force.x()) + Math.PI / 2) * 180 / Math.PI);
 	force.on('dragmove', function () {
-		force.rotation((Math.atan2((force.y() - nodeCircle.y()), (force.x() - nodeCircle.x())) + Math.PI / 2) * 180 / Math.PI);
+		force.rotation((Math.atan2(force.y(), force.x()) + Math.PI / 2) * 180 / Math.PI);
 	});
-	force.attachTo(nodeCircle, 0, -(nodeCircle.height() / 2 + 32));
 
 	return force;
 }
 
 Force.prototype = Object.create(Konva.Arrow.prototype);
-extend(Force.prototype, Attachment.prototype);
 
 //------------------------------------------------------------------------------
 
 function Support(settings) {
 	Konva.Line.apply(this, [settings]);
-	Attachment.apply(this);
 }
 
-Support.createSupport = function (rotation, nodeCircle, style) {
+Support.create = function (rotation, nodeCircle, style) {
 	var support = new Support(style);
 	support.setAttrs({
-		x: nodeCircle.x() - nodeCircle.height() / 2 * Math.sin(rotation * Math.PI / 180),
-		y: nodeCircle.y() + nodeCircle.height() / 2 * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
+		x: nodeCircle.circle.height() / 2 * Math.sin(-rotation * Math.PI / 180),
+		y: nodeCircle.circle.height() / 2 * Math.cos(rotation * Math.PI / 180),
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
 				return pos;
 
-			var x1 = nodeCircle.x();
-			var y1 = nodeCircle.y();
-			var x2 = this.getStage().getPointerPosition().x;
-			var y2 = this.getStage().getPointerPosition().y;
-			var radius = nodeCircle.height() / 2;
-			var scale = radius / Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			var dx = this.getStage().getPointerPosition().x - nodeCircle.x();
+			var dy = this.getStage().getPointerPosition().y - nodeCircle.y();
+			var dlength = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+			if (dlength === 0)
+				return pos;
+
+			var radius = nodeCircle.circle.height() / 2;
+			var scale = radius / dlength;
 			return {
-				x: Math.round((x2 - x1) * scale) + x1,
-				y: Math.round((y2 - y1) * scale) + y1
+				x: Math.round(dx * scale) + nodeCircle.x(),
+				y: Math.round(dy * scale) + nodeCircle.y()
 			};
 		}.bind(support)
 	});
+	support.rotation((Math.atan2(support.y(), support.x()) - Math.PI / 2) * 180 / Math.PI);
 	support.on('dragmove', function () {
-		support.rotation((Math.atan2((support.y() - nodeCircle.y()), (support.x() - nodeCircle.x())) - Math.PI / 2) * 180 / Math.PI);
+		support.rotation((Math.atan2(support.y(), support.x()) - Math.PI / 2) * 180 / Math.PI);
 	});
-	support.attachTo(nodeCircle, 0, nodeCircle.height() / 2);
 
 	return support;
 }
 
 Support.prototype = Object.create(Konva.Line.prototype);
-extend(Support.prototype, Attachment.prototype);
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     module.exports = {

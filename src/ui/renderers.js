@@ -9,7 +9,6 @@ function GraphRenderer(canvas, origin) {
 	this.graph = new Graph();
 	this.nodeMap = {};
 	this.linkMap = {};
-
 }
 
 GraphRenderer.prototype.redraw = function () {
@@ -104,26 +103,26 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var yFree = node.freedom[1];
 	var rotFree = node.freedom[2];
 	if (!xFree & !yFree & !rotFree) {
-		var fixedSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.FixedSupport);
-		this.canvas.add(fixedSupport);
+		var fixedSupport = Interactables.Support.create(-node.rotation, renderNode, Style.FixedSupport);
+		renderNode.add(fixedSupport);
 	}
 	else if (!xFree && !yFree && rotFree) {
-		var pinSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.PinSupport);
-		this.canvas.add(pinSupport);
+		var pinSupport = Interactables.Support.create(-node.rotation, renderNode, Style.PinSupport);
+		renderNode.add(pinSupport);
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && !rotFree) {
 		//slider support
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && rotFree) {
-		var rollerSupport = Interactables.Support.createSupport(-node.rotation, renderNode, Style.RollerSupport);
-		this.canvas.add(rollerSupport);
+		var rollerSupport = Interactables.Support.create(-node.rotation, renderNode, Style.RollerSupport);
+		renderNode.add(rollerSupport);
 	}
 
 	//Forces
 	if (node.force[0] !== 0 || node.force[1] !== 0) {
 		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
 		var force = Interactables.Force.create(angle, renderNode);
-		this.canvas.add(force);
+		renderNode.add(force);
 	}
 }
 
@@ -150,7 +149,7 @@ GraphRenderer.prototype.removeLink = function (link) {
 
 GraphRenderer.prototype.removeNodeAttachments = function (node) {
 	var renderNode = this.getRenderNode(node);
-	renderNode.clearAttachments();
+	renderNode.destroyAttachments();
 	this.canvas.draw();
 }
 
@@ -280,7 +279,6 @@ ResultGraphRenderer.prototype.addNode = function (node) {
 	this.canvas.draw();
 
 	this._associateNode(node, nodeCircle);
-	this.addNodeAttachments(node);
 }
 
 ResultGraphRenderer.prototype.addLink = function (link) {
@@ -292,23 +290,6 @@ ResultGraphRenderer.prototype.addLink = function (link) {
 	this.canvas.draw();
 
 	this._associateLink(link, linkLine);
-}
-
-ResultGraphRenderer.prototype.addNodeAttachments = function (node) {
-	var renderNode = this.getRenderNode(node);
-
-	//Forces
-	/*if (node.force[0] !== 0 || node.force[1] !== 0) {
-		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
-		var force = Interactables.Force.create(angle, renderNode);
-		this.canvas.add(force);
-	}*/
-}
-
-ResultGraphRenderer.prototype.removeNodeAttachments = function (node) {
-	var renderNode = this.getRenderNode(node);
-	renderNode.clearAttachments();
-	this.canvas.draw();
 }
 
 ResultGraphRenderer.prototype.updateNode = function (node) {
@@ -325,10 +306,6 @@ ResultGraphRenderer.prototype.updateNode = function (node) {
 	links.forEach(function (link) {
 		this.updateLink(link);
 	}.bind(this));
-
-	//TODO - Modify existing externals instead of replacing them
-	this.removeNodeAttachments(node);
-	this.addNodeAttachments(node);
 
 	this.canvas.draw();
 }
