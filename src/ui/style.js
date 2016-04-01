@@ -67,8 +67,12 @@ var Style = {
 
 	GridLine: {
 		stroke: 'rgba(128, 128, 128, 1.0)',
-		strokeWidth: 1,
-		listening: false
+		strokeWidth: 1
+	},
+
+	BoundingBox: {
+		stroke: 'rgba(255, 0, 255, 1.0)',
+		strokeWidth: 2
 	}
 }
 

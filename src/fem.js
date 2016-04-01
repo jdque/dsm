@@ -15,6 +15,7 @@ var graph;
 var graphRenderer;
 var resultRenderer;
 var gridRenderer;
+var transientRenderer;
 var mainSelection;
 
 //------------------------------------------------------------------------------
@@ -33,6 +34,8 @@ function selectionState() {
 				position: [selectedObject.x(), origin[1] - selectedObject.y()]
 			});
 		}
+		transientRenderer.updateBoundingBox();
+		transientRenderer.redraw();
 	}.bind(this));
 
 	stage.on("dragend", function (e) {
@@ -55,6 +58,8 @@ function selectionState() {
 
 	stage.on("click", function (e) {
 		mainSelection.select(e.target);
+		transientRenderer.setBoundingBox(e.target);
+		transientRenderer.redraw();
 	}.bind(this));
 
 	stage.on("contentMouseup", function () {
@@ -164,7 +169,7 @@ function setupDOM() {
 	document.getElementById("fixed-button").onclick = function () {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			graph.updateNode(node, {freedom: [false, false, false]});
 		}
 	}
@@ -172,7 +177,7 @@ function setupDOM() {
 	document.getElementById("pin-button").onclick = function () {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			graph.updateNode(node, {freedom: [false, false, true]});
 		}
 	}
@@ -180,7 +185,7 @@ function setupDOM() {
 	document.getElementById("roller-button").onclick = function () {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			graph.updateNode(node, {freedom: [true, false, true]});
 		}
 	}
@@ -188,7 +193,7 @@ function setupDOM() {
 	document.getElementById("force-button").onclick = function () {
 		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject);
+			var node = graphRenderer.getGraphNode(selectedObject.getParent());
 			graph.updateNode(node, {force: [0, -100, 0]});
 		}
 	}
@@ -250,8 +255,10 @@ function run() {
 
 	var gridLayer = new Konva.Layer();
 	gridLayer.disableHitGraph();
+	var transientLayer = new Konva.Layer();
+	transientLayer.disableHitGraph();
 	var objectLayer = new Konva.Layer();
-	stage.add(gridLayer, objectLayer);
+	stage.add(gridLayer, objectLayer, transientLayer);
 
 	canvas = objectLayer;
 
@@ -262,6 +269,8 @@ function run() {
 	gridRenderer = new Renderers.GridRenderer(gridLayer);
 	gridRenderer.setSpacing(32, 32);
 	gridRenderer.redraw();
+
+	transientRenderer = new Renderers.TransientRenderer(transientLayer);
 
 	graphRenderer = new Renderers.GraphRenderer(objectLayer, origin);
 	graphRenderer.setGraph(graph);

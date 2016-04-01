@@ -1,4 +1,4 @@
-var Konva = require('../../lib/konva-0.9.5.js');
+var Konva = require('../../lib/konva-0.12.2.js');
 var Graph = require('../model/Graph.js');
 var Style = require('./style.js');
 var Interactables = require('./interactables.js');
@@ -376,6 +376,9 @@ GridRenderer.prototype.redraw = function () {
 
 	for (var y = 0; y < this.canvas.height(); y += this.ySpacing) {
 		var line = new Konva.Line(Style.GridLine);
+		line.setAttrs({
+			listening: false
+		});
 		line.points([0, y, this.canvas.width(), y]);
 		this.canvas.add(line);
 		this.lines.push(line);
@@ -417,10 +420,60 @@ GridRenderer.prototype.snapObject = function (object, anchor) {
 	});
 }
 
+//------------------------------------------------------------------------------
+
+function TransientRenderer(canvas) {
+	this.canvas = canvas;
+	this.boundingBox = null;
+	this.boundingBoxTarget = null;
+}
+
+TransientRenderer.prototype.setBoundingBox = function (object) {
+	if (!object && this.boundingBox) {
+		this.boundingBoxTarget = null;
+		this.boundingBox.destroy();
+		return;
+	}
+
+	this.boundingBoxTarget = object;
+	if (!this.boundingBox) {
+		this.boundingBox = new Konva.Rect(Style.BoundingBox);
+		this.canvas.add(this.boundingBox);
+	}
+	this.updateBoundingBox();
+}
+
+TransientRenderer.prototype.updateBoundingBox = function () {
+	if (!this.boundingBox || !this.boundingBoxTarget) {
+		return;
+	}
+
+	var objectStageRect = this.boundingBoxTarget.getClientRect();
+	var current = this.boundingBoxTarget.getParent();
+	while (current && current !== this.boundingBoxTarget.getLayer()) {
+		objectStageRect.x += current.x();
+		objectStageRect.y += current.y();
+		current = current.getParent();
+	}
+
+	this.boundingBox.setAttrs({
+		x: objectStageRect.x - 2,
+		y: objectStageRect.y - 2,
+		width: objectStageRect.width + 4,
+		height: objectStageRect.height + 4,
+		listening: false
+	});
+}
+
+TransientRenderer.prototype.redraw = function () {
+	this.canvas.draw();
+}
+
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     module.exports = {
     	GraphRenderer: GraphRenderer,
     	ResultGraphRenderer: ResultGraphRenderer,
-    	GridRenderer: GridRenderer
+		GridRenderer: GridRenderer,
+		TransientRenderer: TransientRenderer
     };
 }
