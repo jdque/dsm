@@ -94,98 +94,7 @@ var selectionState = {
 	}
 };
 
-var addNodeState = {
-	enter: function () {
-		this.activeNode = Interactables.NodeCircle.create(0, 0);
-		canvas.add(this.activeNode);
-		canvas.draw();
-
-		stage.on("contentClick", function () {
-			this.createNewNode();
-			this.activeNode.destroy();
-			this.activeNode = null;
-			canvas.draw();
-
-			appState.setState('selection');
-		}.bind(this));
-
-		stage.on("contentMousemove", function () {
-			this.activeNode.setAttrs({
-				x: stage.getPointerPosition().x,
-				y: stage.getPointerPosition().y
-			});
-			gridRenderer.snapObject(this.activeNode, "center");
-			canvas.draw();
-		}.bind(this));
-
-		this.createNewNode = function () {
-			var node = new Graph.Node({
-				id: Math.round(Math.random(1) * 100000),
-				position: [this.activeNode.x(), origin[1] - this.activeNode.y()]
-			});
-			graph.addNode(node);
-		}.bind(this);
-	},
-
-	exit: function() {
-	}
-};
-
-var addLinkState = {
-	enter: function () {
-		//TODO - deactivate dragging on nodes
-		this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
-		canvas.add(this.activeLine);
-		this.activeLine.moveToBottom();
-		canvas.draw();
-
-		this.startNodeCircle = selectedObject.getParent();
-
-		stage.on("click", function (e) {
-			if (e.target.name() === Interactables.NodeCircle.Name && e.target !== this.startNodeCircle) {
-				this.createNewLink(this.startNodeCircle, e.target.getParent());
-				this.activeLine.destroy();
-				this.activeLine = null;
-				this.startNodeCircle = null;
-				canvas.draw();
-
-				appState.setState('selection');
-			}
-		}.bind(this));
-
-		stage.on("contentMousemove", function () {
-			this.activeLine.setAttrs({
-				points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
-						 stage.getPointerPosition().x, stage.getPointerPosition().y]
-			});
-			canvas.draw();
-		}.bind(this));
-
-		this.createNewLink = function (startNodeCircle, endNodeCircle) {
-			var mat = new Graph.Material({id: "steel", elasticMod: 4});
-			graph.addMaterial(mat);
-
-			var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
-			graph.addSection(sec);
-
-			var fromNode = graphRenderer.getGraphNode(startNodeCircle);
-			var toNode = graphRenderer.getGraphNode(endNodeCircle);
-			var link = new Graph.Link({
-				id: Math.round(Math.random(1) * 100000),
-				source: fromNode,
-				target: toNode,
-				material: mat,
-				section: sec
-			});
-			graph.addLink(link);
-		}.bind(this);
-	},
-
-	exit: function () {
-	}
-};
-
-var addCombinedState = {
+var drawState = {
 	enter: function () {
 		//TODO - deactivate dragging on nodes
 		this.activeEndNode = Interactables.NodeCircle.create(0, 0);
@@ -220,7 +129,7 @@ var addCombinedState = {
 				}
 				mainSelection.select(newNodeCircle.circle);
 			}
-			appState.setState('add_combined');
+			appState.setState('draw');
 		}.bind(this));
 
 		stage.on("contentMousemove", function () {
@@ -288,9 +197,9 @@ function createNewLink(startNodeCircle, endNodeCircle) {
 function setupDOM() {
 	document.getElementById("draw-button").onclick = function () {
 		if (appState.getActiveStateId() === 'selection') {
-			appState.setState('add_combined');
+			appState.setState('draw');
 		}
-		else if (appState.getActiveStateId() === 'add_combined') {
+		else if (appState.getActiveStateId() === 'draw') {
 			appState.setState('selection');
 		}
 	}
@@ -431,9 +340,7 @@ function run() {
 
 	appState = new StateManager(stage);
 	appState.addState('selection', selectionState);
-	appState.addState('add_node', addNodeState);
-	appState.addState('add_link', addLinkState);
-	appState.addState('add_combined', addCombinedState);
+	appState.addState('draw', drawState);
 
 	appState.setState('selection');
 }
