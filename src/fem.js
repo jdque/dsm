@@ -21,6 +21,8 @@ var mainSelection;
 //------------------------------------------------------------------------------
 
 function selectionState() {
+	this.clickedObject = false;
+
 	stage.on("dragstart", function (e) {
 		mainSelection.select(e.target);
 	});
@@ -57,9 +59,19 @@ function selectionState() {
 	}.bind(this));
 
 	stage.on("click", function (e) {
+		this.clickedObject = true;
 		mainSelection.select(e.target);
 		transientRenderer.setBoundingBox(e.target);
 		transientRenderer.redraw();
+	}.bind(this));
+
+	stage.on("contentClick", function (e) {
+		if (!this.clickedObject) {
+			mainSelection.clear();
+			transientRenderer.setBoundingBox(null);
+			transientRenderer.redraw();
+		}
+		this.clickedObject = false;
 	}.bind(this));
 
 	stage.on("contentMouseup", function () {
@@ -160,41 +172,51 @@ function setupDOM() {
 	}
 
 	document.getElementById("line-button").onclick = function () {
-		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			appState.setState('add_link');
+		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+				appState.setState('add_link');
+			}
 		}
 	}
 
 	document.getElementById("fixed-button").onclick = function () {
-		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			graph.updateNode(node, {freedom: [false, false, false]});
+		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				graph.updateNode(node, {freedom: [false, false, false]});
+			}
 		}
 	}
 
 	document.getElementById("pin-button").onclick = function () {
-		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			graph.updateNode(node, {freedom: [false, false, true]});
+		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				graph.updateNode(node, {freedom: [false, false, true]});
+			}
 		}
 	}
 
 	document.getElementById("roller-button").onclick = function () {
-		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			graph.updateNode(node, {freedom: [true, false, true]});
+		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				graph.updateNode(node, {freedom: [true, false, true]});
+			}
 		}
 	}
 
 	document.getElementById("force-button").onclick = function () {
-		var selectedObject = mainSelection.get();
-		if (appState.getActiveStateId() === 'selection' && selectedObject.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			graph.updateNode(node, {force: [0, -100, 0]});
+		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				graph.updateNode(node, {force: [0, -100, 0]});
+			}
 		}
 	}
 
@@ -215,18 +237,27 @@ function setupDOM() {
 			canvasWrapper.focus();
 	});
 	canvasWrapper.addEventListener("keydown", function (e) {
-		var selectedObject = mainSelection.get();
 		if (appState.getActiveStateId() === 'selection') {
+			var selectedObject = mainSelection.get();
+			if (!selectedObject)
+				return;
+
 			if (selectedObject.name() === Interactables.NodeCircle.Name) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getParent());
 					graph.removeNode(node);
+					mainSelection.clear();
+					transientRenderer.setBoundingBox(null);
+					transientRenderer.redraw();
 				}
 			}
 			else if (selectedObject instanceof Interactables.Force) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getParent());
 					graph.updateNode(node, {force: [0, 0, 0]});
+					mainSelection.clear();
+					transientRenderer.setBoundingBox(null);
+					transientRenderer.redraw();
 				}
 			}
 			else if (selectedObject instanceof Interactables.Support) {
@@ -236,6 +267,9 @@ function setupDOM() {
 						freedom: [true, true, true],
 						rotation: 0
 					});
+					mainSelection.clear();
+					transientRenderer.setBoundingBox(null);
+					transientRenderer.redraw();
 				}
 			}
 		}

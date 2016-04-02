@@ -430,8 +430,9 @@ function TransientRenderer(canvas) {
 
 TransientRenderer.prototype.setBoundingBox = function (object) {
 	if (!object && this.boundingBox) {
-		this.boundingBoxTarget = null;
 		this.boundingBox.destroy();
+		this.boundingBox = null;
+		this.boundingBoxTarget = null;
 		return;
 	}
 

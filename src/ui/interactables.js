@@ -78,7 +78,6 @@ Force.create = function (rotation, nodeCircle, style) {
 	force.setAttrs({
 		x: (nodeCircle.circle.height() / 2 + force.height() + 4) * Math.sin(rotation * Math.PI / 180),
 		y: -(nodeCircle.circle.height() / 2 + force.height() + 4) * Math.cos(rotation * Math.PI / 180),
-		rotation: rotation,
 		draggable: true,
 		dragBoundFunc: function (pos) {
 			if (!this.isDragging())
