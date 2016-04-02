@@ -97,23 +97,26 @@ var selectionState = {
 var drawState = {
 	enter: function () {
 		//TODO - deactivate dragging on nodes
-		this.activeEndNode = Interactables.NodeCircle.create(0, 0);
+		this.activeEndNode = Interactables.NodeCircle.create({x: null, y: null});
 		canvas.add(this.activeEndNode);
 
 		var selectedObject = mainSelection.get();
 		if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
-			this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
-			canvas.add(this.activeLine);
-			this.activeLine.moveToBottom();
 			this.startNodeCircle = selectedObject.getParent();
 
-			this.activeStartNode = Interactables.NodeCircle.create(this.startNodeCircle.x(), this.startNodeCircle.y());
+			this.activeLine = Interactables.LinkLine.create(this.startNodeCircle.position(), this.startNodeCircle.position());
+			canvas.add(this.activeLine);
+			this.activeLine.moveToBottom();
+
+			this.activeStartNode = Interactables.NodeCircle.create(this.startNodeCircle.position());
 			canvas.add(this.activeStartNode);
 		}
 		canvas.draw();
 
-		stage.on("contentClick", function () {
-			var intersectObject = stage.getIntersection(this.activeEndNode.position());
+		stage.on("contentClick contentTouchend", function () {
+			var placementPosition = this.activeEndNode.x() !== null && this.activeEndNode.y() !== null ?
+				this.activeEndNode.position() : stage.getPointerPosition();
+			var intersectObject = stage.getIntersection(placementPosition);
 			if (intersectObject) {
 				if (intersectObject.name() === Interactables.NodeCircle.Name && intersectObject.getParent() !== this.startNodeCircle) {
 					if (this.activeLine) {
@@ -123,7 +126,7 @@ var drawState = {
 				}
 			}
 			else {
-				var newNodeCircle = createNewNode(this.activeEndNode.position());
+				var newNodeCircle = createNewNode(placementPosition);
 				if (this.activeLine) {
 					createNewLink(this.startNodeCircle, newNodeCircle);
 				}
@@ -132,7 +135,7 @@ var drawState = {
 			appState.setState('draw');
 		}.bind(this));
 
-		stage.on("contentMousemove", function () {
+		stage.on("contentMousemove contentTouchmove", function () {
 			this.activeEndNode.setAttrs({
 				x: stage.getPointerPosition().x,
 				y: stage.getPointerPosition().y

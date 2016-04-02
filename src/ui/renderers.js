@@ -75,7 +75,7 @@ GraphRenderer.prototype.setGraph = function (graph) {
 }
 
 GraphRenderer.prototype.addNode = function (node) {
-	var nodeCircle = Interactables.NodeCircle.create(node.position[0], this.origin[1] - node.position[1]);
+	var nodeCircle = Interactables.NodeCircle.create({x: node.position[0], y: this.origin[1] - node.position[1]});
 	this.canvas.add(nodeCircle);
 	this.canvas.draw();
 
@@ -87,7 +87,7 @@ GraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
 
-	var linkLine = Interactables.LinkLine.create(fromNode, toNode);
+	var linkLine = Interactables.LinkLine.create(fromNode.position(), toNode.position());
 	this.canvas.add(linkLine);
 	linkLine.moveToBottom();
 	this.canvas.draw();
@@ -274,7 +274,7 @@ ResultGraphRenderer.prototype.setGraph = function (graph) {
 
 ResultGraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = Interactables.NodeCircle.create(
-		node.position[0], this.origin[1] - node.position[1], Style.ResultNode);
+		{x: node.position[0], y: this.origin[1] - node.position[1]}, Style.ResultNode);
 	this.canvas.add(nodeCircle);
 	this.canvas.draw();
 
@@ -284,7 +284,7 @@ ResultGraphRenderer.prototype.addNode = function (node) {
 ResultGraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
-	var linkLine = Interactables.LinkLine.create(fromNode, toNode, Style.ResultLink);
+	var linkLine = Interactables.LinkLine.create(fromNode.position(), toNode.position(), Style.ResultLink);
 	this.canvas.add(linkLine);
 	linkLine.moveToBottom();
 	this.canvas.draw();

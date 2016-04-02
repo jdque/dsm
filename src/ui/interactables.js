@@ -18,11 +18,11 @@ function NodeCircle(settings) {
 
 NodeCircle.Name = "NodeCircle";
 
-NodeCircle.create = function (x, y, style) {
+NodeCircle.create = function (position, style) {
 	var node = new NodeCircle();
 	node.setAttrs({
-		x: x,
-		y: y,
+		x: position.x,
+		y: position.y,
 		width: 10,
 		height: 10,
 		draggable: true
@@ -56,10 +56,10 @@ function LinkLine(settings) {
 	Konva.Line.apply(this, [settings]);
 }
 
-LinkLine.create = function (fromNode, toNode, style) {
+LinkLine.create = function (fromPos, toPos, style) {
 	var line = new LinkLine(style || Style.Link);
 	line.setAttrs({
-		points: [fromNode.x(), fromNode.y(), toNode.x(), toNode.y()]
+		points: [fromPos.x, fromPos.y, toPos.x, toPos.y]
 	});
 
 	return line;
