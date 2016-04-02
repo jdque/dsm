@@ -123,13 +123,11 @@ function addNodeState() {
 
 function addLinkState() {
 	//TODO - deactivate dragging on nodes
-	var selectedObject = mainSelection.get();
-	var linkLine = Interactables.LinkLine.create(selectedObject, selectedObject);
-	canvas.add(linkLine);
-	linkLine.moveToBottom();
+	this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
+	canvas.add(this.activeLine);
+	this.activeLine.moveToBottom();
 	canvas.draw();
 
-	this.activeLine = linkLine;
 	this.startNodeCircle = selectedObject.getParent();
 
 	stage.on("click", function (e) {
@@ -172,19 +170,110 @@ function addLinkState() {
 	}.bind(this);
 };
 
-function setupDOM() {
-	document.getElementById("node-button").onclick = function () {
-		if (appState.getActiveStateId() === 'selection') {
-			appState.setState('add_node');
-		}
-	}
+function addCombinedState() {
+	//TODO - deactivate dragging on nodes
+	this.activeNode = Interactables.NodeCircle.create(0, 0);
+	this.activeNode.setAttrs({
+		listening: false
+	});
+	canvas.add(this.activeNode);
 
-	document.getElementById("line-button").onclick = function () {
-		if (appState.getActiveStateId() === 'selection') {
-			var selectedObject = mainSelection.get();
-			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
-				appState.setState('add_link');
+	var selectedObject = mainSelection.get();
+	if (selectedObject) {
+		this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
+		this.activeLine.setAttrs({
+			listening: false
+		});
+		canvas.add(this.activeLine);
+		this.activeLine.moveToBottom();
+		this.startNodeCircle = selectedObject.getParent();
+	}
+	canvas.draw();
+
+	stage.on("contentClick", function () {
+		var intersectObject = stage.getIntersection(this.activeNode.position());
+		if (intersectObject) {
+			if (intersectObject.name() === Interactables.NodeCircle.Name && intersectObject !== this.startNodeCircle) {
+				if (this.activeLine) {
+					this.createNewLink(this.startNodeCircle, intersectObject.getParent());
+					mainSelection.select(intersectObject);
+				}
 			}
+			else {
+				return;
+			}
+		}
+		else {
+			var newNodeCircle = this.createNewNode(this.activeNode.position());
+			if (this.activeLine) {
+				this.createNewLink(this.startNodeCircle, newNodeCircle);
+			}
+			mainSelection.select(newNodeCircle.circle);
+		}
+
+		this.activeNode.destroy();
+		this.activeNode = null;
+		if (this.activeLine) {
+			this.activeLine.destroy();
+			this.activeLine = null;
+		}
+		this.startNodeCircle = null;
+		canvas.draw();
+		appState.setState('add_combined');
+	}.bind(this));
+
+	stage.on("contentMousemove", function () {
+		this.activeNode.setAttrs({
+			x: stage.getPointerPosition().x,
+			y: stage.getPointerPosition().y
+		});
+		//gridRenderer.snapObject(this.activeNode, "center");
+
+		if (this.activeLine) {
+			this.activeLine.setAttrs({
+				points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
+						 this.activeNode.x(), this.activeNode.y()]
+			});
+		}
+		canvas.draw();
+	}.bind(this));
+
+	this.createNewNode = function (position) {
+		var node = new Graph.Node({
+			id: Math.round(Math.random(1) * 100000),
+			position: [position.x, origin[1] - position.y]
+		});
+		graph.addNode(node);
+		return graphRenderer.getRenderNode(node);
+	}.bind(this);
+
+	this.createNewLink = function (startNodeCircle, endNodeCircle) {
+		var mat = new Graph.Material({id: "steel", elasticMod: 4});
+		graph.addMaterial(mat);
+
+		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
+		graph.addSection(sec);
+
+		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
+		var toNode = graphRenderer.getGraphNode(endNodeCircle);
+		var link = new Graph.Link({
+			id: Math.round(Math.random(1) * 100000),
+			source: fromNode,
+			target: toNode,
+			material: mat,
+			section: sec
+		});
+		graph.addLink(link);
+	}.bind(this);
+};
+
+function setupDOM() {
+	document.getElementById("draw-button").onclick = function () {
+		if (appState.getActiveStateId() === 'selection') {
+			appState.setState('add_combined');
+		}
+		else if (appState.getActiveStateId() === 'add_combined') {
+			appState.setState('selection');
 		}
 	}
 
@@ -326,6 +415,7 @@ function run() {
 	appState.addState('selection', selectionState);
 	appState.addState('add_node', addNodeState);
 	appState.addState('add_link', addLinkState);
+	appState.addState('add_combined', addCombinedState);
 
 	appState.setState('selection');
 }
