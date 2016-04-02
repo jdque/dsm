@@ -24,7 +24,7 @@ var mainSelection;
 
 var selectionState = {
 	enter: function () {
-		this.clickedObject = false;
+		this.clickedObject = null;
 
 		stage.on("dragstart", function (e) {
 			mainSelection.select(e.target);
@@ -62,7 +62,7 @@ var selectionState = {
 		}.bind(this));
 
 		stage.on("click", function (e) {
-			this.clickedObject = true;
+			this.clickedObject = e.target;
 			mainSelection.select(e.target);
 			transientRenderer.setBoundingBox(e.target);
 			transientRenderer.redraw();
@@ -74,7 +74,7 @@ var selectionState = {
 				transientRenderer.setBoundingBox(null);
 				transientRenderer.redraw();
 			}
-			this.clickedObject = false;
+			this.clickedObject = null;
 		}.bind(this));
 
 		stage.on("contentMouseup", function () {
@@ -91,6 +91,7 @@ var selectionState = {
 	},
 
 	exit: function () {
+		this.clickedObject = null;
 	}
 };
 
