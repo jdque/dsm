@@ -426,6 +426,8 @@ function TransientRenderer(canvas) {
 	this.canvas = canvas;
 	this.boundingBox = null;
 	this.boundingBoxTarget = null;
+
+	this.highlightIdMap = {};
 }
 
 TransientRenderer.prototype.setBoundingBox = function (object) {
@@ -464,6 +466,43 @@ TransientRenderer.prototype.updateBoundingBox = function () {
 		height: objectStageRect.height + 4,
 		listening: false
 	});
+}
+
+TransientRenderer.prototype.highlight = function (object) {
+	if (this.highlightIdMap[object._id]) {
+		return;
+	}
+
+	this.highlightIdMap[object._id] = {
+		object: object,
+		originalFill: object.fill(),
+		originalStroke: object.stroke()
+	};
+	if (object.fill()) {
+		object.fill('rgba(255, 0, 255, 1.0)');
+	}
+	if (object.stroke()) {
+		object.stroke('rgba(255, 0, 255, 1.0)');
+	}
+	object.getLayer().draw();
+}
+
+TransientRenderer.prototype.unhighlight = function (object) {
+	var highlight = this.highlightIdMap[object._id];
+	if (highlight) {
+		if (highlight.object && highlight.object.getParent()) {
+			object.fill(highlight.originalFill);
+			object.stroke(highlight.originalStroke);
+			object.getLayer().draw();
+		}
+		delete this.highlightIdMap[object._id];
+	}
+}
+
+TransientRenderer.prototype.clearHighlights = function () {
+	for (var key in this.highlightIdMap) {
+		this.unhighlight(this.highlightIdMap[key].object);
+	}
 }
 
 TransientRenderer.prototype.redraw = function () {

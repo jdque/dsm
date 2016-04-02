@@ -80,6 +80,12 @@ function selectionState() {
 	}.bind(this));
 
 	stage.on("contentMousemove", function () {
+		var object = stage.getIntersection(stage.getPointerPosition());
+		transientRenderer.clearHighlights();
+		if (object) {
+			transientRenderer.highlight(object);
+		}
+		transientRenderer.redraw();
 	}.bind(this));
 };
 
