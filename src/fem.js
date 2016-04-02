@@ -278,6 +278,15 @@ function setupDOM() {
 					transientRenderer.redraw();
 				}
 			}
+			else if (selectedObject instanceof Interactables.LinkLine) {
+				if (e.keyCode === 46) {
+					var link = graphRenderer.getGraphLink(selectedObject);
+					graph.removeLink(link);
+					mainSelection.clear();
+					transientRenderer.setBoundingBox(null);
+					transientRenderer.redraw();
+				}
+			}
 			else if (selectedObject instanceof Interactables.Force) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getParent());
