@@ -22,250 +22,268 @@ var mainSelection;
 
 //------------------------------------------------------------------------------
 
-function selectionState() {
-	this.clickedObject = false;
-
-	stage.on("dragstart", function (e) {
-		mainSelection.select(e.target);
-	});
-
-	stage.on("dragmove", function (e) {
-		var selectedObject = mainSelection.get();
-		if (selectedObject instanceof Interactables.NodeCircle) {
-			gridRenderer.snapObject(selectedObject, "center");
-			canvas.draw();
-			graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
-				position: [selectedObject.x(), origin[1] - selectedObject.y()]
-			});
-		}
-		transientRenderer.updateBoundingBox();
-		transientRenderer.redraw();
-	}.bind(this));
-
-	stage.on("dragend", function (e) {
-		var selectedObject = mainSelection.get();
-		if (selectedObject instanceof Interactables.Support) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			graph.updateNode(node, {
-				rotation: -selectedObject.rotation()
-			});
-		}
-		else if (selectedObject instanceof Interactables.Force) {
-			var node = graphRenderer.getGraphNode(selectedObject.getParent());
-			var angle = selectedObject.rotation() * Math.PI / 180;
-			var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
-			graph.updateNode(node, {
-				force: [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle), node.force[2]]
-			});
-		}
-	}.bind(this));
-
-	stage.on("click", function (e) {
-		this.clickedObject = true;
-		mainSelection.select(e.target);
-		transientRenderer.setBoundingBox(e.target);
-		transientRenderer.redraw();
-	}.bind(this));
-
-	stage.on("contentClick", function (e) {
-		if (!this.clickedObject) {
-			mainSelection.clear();
-			transientRenderer.setBoundingBox(null);
-			transientRenderer.redraw();
-		}
+var selectionState = {
+	enter: function () {
 		this.clickedObject = false;
-	}.bind(this));
 
-	stage.on("contentMouseup", function () {
-	}.bind(this));
+		stage.on("dragstart", function (e) {
+			mainSelection.select(e.target);
+		});
 
-	stage.on("contentMousemove", function () {
-		var object = stage.getIntersection(stage.getPointerPosition());
-		transientRenderer.clearHighlights();
-		if (object) {
-			transientRenderer.highlight(object);
-		}
-		transientRenderer.redraw();
-	}.bind(this));
+		stage.on("dragmove", function (e) {
+			var selectedObject = mainSelection.get();
+			if (selectedObject instanceof Interactables.NodeCircle) {
+				gridRenderer.snapObject(selectedObject, "center");
+				canvas.draw();
+				graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
+					position: [selectedObject.x(), origin[1] - selectedObject.y()]
+				});
+			}
+			transientRenderer.updateBoundingBox();
+			transientRenderer.redraw();
+		}.bind(this));
+
+		stage.on("dragend", function (e) {
+			var selectedObject = mainSelection.get();
+			if (selectedObject instanceof Interactables.Support) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				graph.updateNode(node, {
+					rotation: -selectedObject.rotation()
+				});
+			}
+			else if (selectedObject instanceof Interactables.Force) {
+				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				var angle = selectedObject.rotation() * Math.PI / 180;
+				var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
+				graph.updateNode(node, {
+					force: [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle), node.force[2]]
+				});
+			}
+		}.bind(this));
+
+		stage.on("click", function (e) {
+			this.clickedObject = true;
+			mainSelection.select(e.target);
+			transientRenderer.setBoundingBox(e.target);
+			transientRenderer.redraw();
+		}.bind(this));
+
+		stage.on("contentClick", function (e) {
+			if (!this.clickedObject) {
+				mainSelection.clear();
+				transientRenderer.setBoundingBox(null);
+				transientRenderer.redraw();
+			}
+			this.clickedObject = false;
+		}.bind(this));
+
+		stage.on("contentMouseup", function () {
+		}.bind(this));
+
+		stage.on("contentMousemove", function () {
+			var object = stage.getIntersection(stage.getPointerPosition());
+			transientRenderer.clearHighlights();
+			if (object) {
+				transientRenderer.highlight(object);
+			}
+			transientRenderer.redraw();
+		}.bind(this));
+	},
+
+	exit: function () {
+	}
 };
 
-function addNodeState() {
-	this.activeNode = Interactables.NodeCircle.create(0, 0);
-	canvas.add(this.activeNode);
-	canvas.draw();
-
-	stage.on("contentClick", function () {
-		this.createNewNode();
-		this.activeNode.destroy();
-		this.activeNode = null;
+var addNodeState = {
+	enter: function () {
+		this.activeNode = Interactables.NodeCircle.create(0, 0);
+		canvas.add(this.activeNode);
 		canvas.draw();
 
-		appState.setState('selection');
-	}.bind(this));
-
-	stage.on("contentMousemove", function () {
-		this.activeNode.setAttrs({
-			x: stage.getPointerPosition().x,
-			y: stage.getPointerPosition().y
-		});
-		gridRenderer.snapObject(this.activeNode, "center");
-		canvas.draw();
-	}.bind(this));
-
-	this.createNewNode = function () {
-		var node = new Graph.Node({
-			id: Math.round(Math.random(1) * 100000),
-			position: [this.activeNode.x(), origin[1] - this.activeNode.y()]
-		});
-		graph.addNode(node);
-	}.bind(this);
-};
-
-function addLinkState() {
-	//TODO - deactivate dragging on nodes
-	this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
-	canvas.add(this.activeLine);
-	this.activeLine.moveToBottom();
-	canvas.draw();
-
-	this.startNodeCircle = selectedObject.getParent();
-
-	stage.on("click", function (e) {
-		if (e.target.name() === Interactables.NodeCircle.Name && e.target !== this.startNodeCircle) {
-			this.createNewLink(this.startNodeCircle, e.target.getParent());
-			this.activeLine.destroy();
-			this.activeLine = null;
-			this.startNodeCircle = null;
+		stage.on("contentClick", function () {
+			this.createNewNode();
+			this.activeNode.destroy();
+			this.activeNode = null;
 			canvas.draw();
 
 			appState.setState('selection');
-		}
-	}.bind(this));
+		}.bind(this));
 
-	stage.on("contentMousemove", function () {
-		this.activeLine.setAttrs({
-			points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
-					 stage.getPointerPosition().x, stage.getPointerPosition().y]
-		});
-		canvas.draw();
-	}.bind(this));
+		stage.on("contentMousemove", function () {
+			this.activeNode.setAttrs({
+				x: stage.getPointerPosition().x,
+				y: stage.getPointerPosition().y
+			});
+			gridRenderer.snapObject(this.activeNode, "center");
+			canvas.draw();
+		}.bind(this));
 
-	this.createNewLink = function (startNodeCircle, endNodeCircle) {
-		var mat = new Graph.Material({id: "steel", elasticMod: 4});
-		graph.addMaterial(mat);
+		this.createNewNode = function () {
+			var node = new Graph.Node({
+				id: Math.round(Math.random(1) * 100000),
+				position: [this.activeNode.x(), origin[1] - this.activeNode.y()]
+			});
+			graph.addNode(node);
+		}.bind(this);
+	},
 
-		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
-		graph.addSection(sec);
-
-		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
-		var toNode = graphRenderer.getGraphNode(endNodeCircle);
-		var link = new Graph.Link({
-			id: Math.round(Math.random(1) * 100000),
-			source: fromNode,
-			target: toNode,
-			material: mat,
-			section: sec
-		});
-		graph.addLink(link);
-	}.bind(this);
+	exit: function() {
+	}
 };
 
-function addCombinedState() {
-	//TODO - deactivate dragging on nodes
-	this.activeNode = Interactables.NodeCircle.create(0, 0);
-	this.activeNode.setAttrs({
-		listening: false
-	});
-	canvas.add(this.activeNode);
-
-	var selectedObject = mainSelection.get();
-	if (selectedObject) {
+var addLinkState = {
+	enter: function () {
+		//TODO - deactivate dragging on nodes
 		this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
-		this.activeLine.setAttrs({
-			listening: false
-		});
 		canvas.add(this.activeLine);
 		this.activeLine.moveToBottom();
-		this.startNodeCircle = selectedObject.getParent();
-	}
-	canvas.draw();
+		canvas.draw();
 
-	stage.on("contentClick", function () {
-		var intersectObject = stage.getIntersection(this.activeNode.position());
-		if (intersectObject) {
-			if (intersectObject.name() === Interactables.NodeCircle.Name && intersectObject !== this.startNodeCircle) {
-				if (this.activeLine) {
-					this.createNewLink(this.startNodeCircle, intersectObject.getParent());
-					mainSelection.select(intersectObject);
+		this.startNodeCircle = selectedObject.getParent();
+
+		stage.on("click", function (e) {
+			if (e.target.name() === Interactables.NodeCircle.Name && e.target !== this.startNodeCircle) {
+				this.createNewLink(this.startNodeCircle, e.target.getParent());
+				this.activeLine.destroy();
+				this.activeLine = null;
+				this.startNodeCircle = null;
+				canvas.draw();
+
+				appState.setState('selection');
+			}
+		}.bind(this));
+
+		stage.on("contentMousemove", function () {
+			this.activeLine.setAttrs({
+				points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
+						 stage.getPointerPosition().x, stage.getPointerPosition().y]
+			});
+			canvas.draw();
+		}.bind(this));
+
+		this.createNewLink = function (startNodeCircle, endNodeCircle) {
+			var mat = new Graph.Material({id: "steel", elasticMod: 4});
+			graph.addMaterial(mat);
+
+			var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
+			graph.addSection(sec);
+
+			var fromNode = graphRenderer.getGraphNode(startNodeCircle);
+			var toNode = graphRenderer.getGraphNode(endNodeCircle);
+			var link = new Graph.Link({
+				id: Math.round(Math.random(1) * 100000),
+				source: fromNode,
+				target: toNode,
+				material: mat,
+				section: sec
+			});
+			graph.addLink(link);
+		}.bind(this);
+	},
+
+	exit: function () {
+	}
+};
+
+var addCombinedState = {
+	enter: function () {
+		//TODO - deactivate dragging on nodes
+		this.activeEndNode = Interactables.NodeCircle.create(0, 0);
+		canvas.add(this.activeEndNode);
+
+		var selectedObject = mainSelection.get();
+		if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
+			this.activeLine = Interactables.LinkLine.create(selectedObject, selectedObject);
+			canvas.add(this.activeLine);
+			this.activeLine.moveToBottom();
+			this.startNodeCircle = selectedObject.getParent();
+
+			this.activeStartNode = Interactables.NodeCircle.create(this.startNodeCircle.x(), this.startNodeCircle.y());
+			canvas.add(this.activeStartNode);
+		}
+		canvas.draw();
+
+		stage.on("contentClick", function () {
+			var intersectObject = stage.getIntersection(this.activeEndNode.position());
+			if (intersectObject) {
+				if (intersectObject.name() === Interactables.NodeCircle.Name && intersectObject.getParent() !== this.startNodeCircle) {
+					if (this.activeLine) {
+						createNewLink(this.startNodeCircle, intersectObject.getParent());
+						mainSelection.select(intersectObject);
+					}
 				}
 			}
 			else {
-				return;
+				var newNodeCircle = createNewNode(this.activeEndNode.position());
+				if (this.activeLine) {
+					createNewLink(this.startNodeCircle, newNodeCircle);
+				}
+				mainSelection.select(newNodeCircle.circle);
 			}
-		}
-		else {
-			var newNodeCircle = this.createNewNode(this.activeNode.position());
-			if (this.activeLine) {
-				this.createNewLink(this.startNodeCircle, newNodeCircle);
-			}
-			mainSelection.select(newNodeCircle.circle);
-		}
+			appState.setState('add_combined');
+		}.bind(this));
 
-		this.activeNode.destroy();
-		this.activeNode = null;
+		stage.on("contentMousemove", function () {
+			this.activeEndNode.setAttrs({
+				x: stage.getPointerPosition().x,
+				y: stage.getPointerPosition().y
+			});
+			gridRenderer.snapObject(this.activeEndNode, "center");
+
+			if (this.activeLine) {
+				this.activeLine.setAttrs({
+					points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
+							 this.activeEndNode.x(), this.activeEndNode.y()]
+				});
+			}
+			canvas.draw();
+		}.bind(this));
+	},
+
+	exit: function () {
+		this.activeEndNode.destroy();
+		if (this.activeStartNode) {
+			this.activeStartNode.destroy();
+		}
 		if (this.activeLine) {
 			this.activeLine.destroy();
-			this.activeLine = null;
 		}
+		canvas.draw();
+		this.activeStartNode = null;
+		this.activeEndNode = null;
+		this.activeLine = null;
 		this.startNodeCircle = null;
-		canvas.draw();
-		appState.setState('add_combined');
-	}.bind(this));
-
-	stage.on("contentMousemove", function () {
-		this.activeNode.setAttrs({
-			x: stage.getPointerPosition().x,
-			y: stage.getPointerPosition().y
-		});
-		//gridRenderer.snapObject(this.activeNode, "center");
-
-		if (this.activeLine) {
-			this.activeLine.setAttrs({
-				points: [this.startNodeCircle.x(), this.startNodeCircle.y(),
-						 this.activeNode.x(), this.activeNode.y()]
-			});
-		}
-		canvas.draw();
-	}.bind(this));
-
-	this.createNewNode = function (position) {
-		var node = new Graph.Node({
-			id: Math.round(Math.random(1) * 100000),
-			position: [position.x, origin[1] - position.y]
-		});
-		graph.addNode(node);
-		return graphRenderer.getRenderNode(node);
-	}.bind(this);
-
-	this.createNewLink = function (startNodeCircle, endNodeCircle) {
-		var mat = new Graph.Material({id: "steel", elasticMod: 4});
-		graph.addMaterial(mat);
-
-		var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
-		graph.addSection(sec);
-
-		var fromNode = graphRenderer.getGraphNode(startNodeCircle);
-		var toNode = graphRenderer.getGraphNode(endNodeCircle);
-		var link = new Graph.Link({
-			id: Math.round(Math.random(1) * 100000),
-			source: fromNode,
-			target: toNode,
-			material: mat,
-			section: sec
-		});
-		graph.addLink(link);
-	}.bind(this);
+	}
 };
+
+function createNewNode(position) {
+	var node = new Graph.Node({
+		id: Math.round(Math.random(1) * 100000),
+		position: [position.x, origin[1] - position.y]
+	});
+	graph.addNode(node);
+	return graphRenderer.getRenderNode(node);
+}
+
+function createNewLink(startNodeCircle, endNodeCircle) {
+	var mat = new Graph.Material({id: "steel", elasticMod: 4});
+	graph.addMaterial(mat);
+
+	var sec = new Graph.Section({id: "spar", area: 100, momInertia: 1000000});
+	graph.addSection(sec);
+
+	var fromNode = graphRenderer.getGraphNode(startNodeCircle);
+	var toNode = graphRenderer.getGraphNode(endNodeCircle);
+	var link = new Graph.Link({
+		id: Math.round(Math.random(1) * 100000),
+		source: fromNode,
+		target: toNode,
+		material: mat,
+		section: sec
+	});
+	graph.addLink(link);
+	return graphRenderer.getRenderLink(link);
+}
 
 function setupDOM() {
 	document.getElementById("draw-button").onclick = function () {
@@ -391,7 +409,7 @@ function run() {
 	var objectLayer = new Konva.Layer();
 	stage.add(gridLayer, objectLayer, transientLayer);
 
-	canvas = objectLayer;
+	canvas = transientLayer;
 
 	origin = [0, canvas.height()];
 	//graph = new Graph();

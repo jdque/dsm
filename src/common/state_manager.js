@@ -9,9 +9,12 @@ StateManager.prototype.addState = function (id, object) {
 }
 
 StateManager.prototype.setState = function (stateId) {
-	this.stage.off();
+	if (this.activeStateId) {
+		this.stateMap[this.activeStateId].exit();
+	}
 	this.activeStateId = stateId;
-	this.stateMap[stateId](this);
+	this.stage.off();
+	this.stateMap[stateId].enter();
 }
 
 StateManager.prototype.getActiveStateId = function () {
