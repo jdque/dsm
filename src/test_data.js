@@ -114,7 +114,7 @@ var testData =
 				displacement: [0, 0, 0],
 				freedom: [true, false, true],
 				rotation: -45,
-				force: [0, 0, 0]
+				forces: [[0, 0, 0]]
 			},
 			{
 				id: 2,
@@ -122,7 +122,7 @@ var testData =
 				displacement: [0, 0, 0],
 				freedom: [false, false, true],
 				rotation: 0,
-				force: [0, 0, 0]
+				forces: [[0, 0, 0]]
 			},
 			{
 				id: 3,
@@ -130,7 +130,7 @@ var testData =
 				displacement: [0, 0, 0],
 				freedom: [true, true, true],
 				rotation: 0,
-				force: [0, -100, 0]
+				forces: [[0, -100, 0], [50, 0, 0]]
 			}
 		],
 		elements: [

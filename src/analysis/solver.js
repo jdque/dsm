@@ -69,15 +69,17 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	graph.nodes.forEach(function (node) {
 		globalA.push.apply(globalA, [node.rotation, node.rotation, 0]);
 		globalU.push.apply(globalU, node.displacement);
-		globalF.push.apply(globalF, [
-			node.force[0] * Math.cos(node.rotation * Math.PI / 180) +
-			node.force[1] * Math.cos((90-node.rotation) * Math.PI / 180),
-			node.force[0] * Math.sin(node.rotation * Math.PI / 180) +
-			node.force[1] * Math.sin((90-node.rotation) * Math.PI / 180),
-			node.force[2]
-		]);
 		globalR.push.apply(globalR, [0, 0, 0]);
 		globalIsFree.push.apply(globalIsFree, node.freedom);
+
+		var summedForce = N.add.apply(node.forces, node.forces);
+		globalF.push.apply(globalF, [
+			summedForce[0] * Math.cos(node.rotation * Math.PI / 180) +
+			summedForce[1] * Math.cos((90-node.rotation) * Math.PI / 180),
+			summedForce[0] * Math.sin(node.rotation * Math.PI / 180) +
+			summedForce[1] * Math.sin((90-node.rotation) * Math.PI / 180),
+			summedForce[2]
+		]);
 	});
 
 	var indexKey = [];

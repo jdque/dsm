@@ -119,11 +119,13 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	}
 
 	//Forces
-	if (node.force[0] !== 0 || node.force[1] !== 0) {
-		var angle = -Math.atan2(node.force[1], node.force[0]) * 180 / Math.PI - 90;
-		var force = Interactables.Force.create(angle, renderNode);
-		renderNode.add(force);
-	}
+	node.forces.forEach(function (force) {
+		if (force[0] !== 0 || force[1] !== 0) {
+			var angle = -Math.atan2(force[1], force[0]) * 180 / Math.PI - 90;
+			var force = Interactables.Force.create(angle, renderNode);
+			renderNode.add(force);
+		}
+	});
 }
 
 GraphRenderer.prototype.removeNode = function (node) {

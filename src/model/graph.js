@@ -24,7 +24,7 @@ Graph.Node = function (settings) {
 	this.displacement = settings.displacement || [0, 0, 0];
 	this.freedom      = settings.freedom      || [true, true, true];
 	this.rotation     = settings.rotation     || 0;
-	this.force        = settings.force        || [0, 0, 0];
+	this.forces       = settings.forces       || [[0, 0, 0]];
 }
 
 Graph.Link = function (settings) {
@@ -72,7 +72,7 @@ Graph.fromJSON = function (json) {
 			displacement: node['displacement'],
 			freedom: node['freedom'],
 			rotation: node['rotation'],
-			force: node['force']
+			forces: node['forces']
 		}));
 	});
 
