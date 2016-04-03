@@ -122,10 +122,11 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	node.forces.forEach(function (force) {
 		if (force[0] !== 0 || force[1] !== 0) {
 			var angle = -Math.atan2(force[1], force[0]) * 180 / Math.PI - 90;
-			var force = Interactables.Force.create(angle, renderNode);
-			renderNode.add(force);
+			var renderForce = Interactables.Force.create(angle, renderNode);
+			renderNode.add(renderForce);
+			this._associateForce(force, renderForce);
 		}
-	});
+	}.bind(this));
 }
 
 GraphRenderer.prototype.removeNode = function (node) {
@@ -136,17 +137,17 @@ GraphRenderer.prototype.removeNode = function (node) {
 
 	this.removeNodeAttachments(node);
 
-	this.getRenderNode(node).destroy();
+	var renderNode = this.getRenderNode(node);
+	this._unassociateNode(node, renderNode);
+	renderNode.destroy();
 	this.canvas.draw();
-
-	this._unassociateNode(node);
 }
 
 GraphRenderer.prototype.removeLink = function (link) {
-	this.getRenderLink(link).destroy();
+	var renderLink = this.getRenderLink(link);
+	this._unassociateLink(link, renderLink);
+	renderLink.destroy();
 	this.canvas.draw();
-
-	this._unassociateLink(link);
 }
 
 GraphRenderer.prototype.removeNodeAttachments = function (node) {
@@ -198,6 +199,10 @@ GraphRenderer.prototype.getGraphLink = function (renderLink) {
 	return renderLink._graphLink;
 }
 
+GraphRenderer.prototype.getGraphForce = function (renderForce) {
+	return renderForce._graphForce;
+}
+
 GraphRenderer.prototype.getRenderNode = function (graphNode) {
 	return this.nodeMap[graphNode['id']];
 }
@@ -216,12 +221,22 @@ GraphRenderer.prototype._associateLink = function (link, renderObject) {
 	renderObject._graphLink = link;
 }
 
-GraphRenderer.prototype._unassociateNode = function (node) {
+GraphRenderer.prototype._associateForce = function (force, renderObject) {
+	renderObject._graphForce = force;
+}
+
+GraphRenderer.prototype._unassociateNode = function (node, renderObject) {
+	renderObject._graphNode = null;
 	delete this.nodeMap[node['id']];
 }
 
-GraphRenderer.prototype._unassociateLink = function (link) {
+GraphRenderer.prototype._unassociateLink = function (link, renderObject) {
+	renderObject._graphLink = null;
 	delete this.linkMap[link['id']];
+}
+
+GraphRenderer.prototype._unassociateForce = function (force, renderObject) {
+	renderObject._graphForce = null;
 }
 
 //------------------------------------------------------------------------------

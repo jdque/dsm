@@ -54,9 +54,11 @@ var selectionState = {
 			else if (selectedObject instanceof Interactables.Force) {
 				var node = graphRenderer.getGraphNode(selectedObject.getParent());
 				var angle = selectedObject.rotation() * Math.PI / 180;
-				var magnitude = Math.sqrt(Math.pow(node.force[0], 2) + Math.pow(node.force[1], 2));
+				var force = graphRenderer.getGraphForce(selectedObject);
+				var magnitude = Math.sqrt(Math.pow(force[0], 2) + Math.pow(force[1], 2));
+				node.forces[node.forces.indexOf(force)] = [-magnitude * Math.sin(angle), -magnitude * Math.cos(angle), force[2]];
 				graph.updateNode(node, {
-					forces: [[-magnitude * Math.sin(angle), -magnitude * Math.cos(angle), node.force[2]]]
+					forces: node.forces
 				});
 			}
 		}.bind(this));
@@ -243,9 +245,8 @@ function setupDOM() {
 			var selectedObject = mainSelection.get();
 			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
 				var node = graphRenderer.getGraphNode(selectedObject.getParent());
-				var forces = node.forces;
-				forces.push([0, -100, 0]);
-				graph.updateNode(node, {forces: forces});
+				node.forces.push([0, -100, 0]);
+				graph.updateNode(node, {forces: node.forces});
 			}
 		}
 	}
@@ -293,7 +294,9 @@ function setupDOM() {
 			else if (selectedObject instanceof Interactables.Force) {
 				if (e.keyCode === 46) {
 					var node = graphRenderer.getGraphNode(selectedObject.getParent());
-					graph.updateNode(node, {forces: [[0, 0, 0]]});
+					var force = graphRenderer.getGraphForce(selectedObject);
+					node.forces.splice(node.forces.indexOf(force), 1);
+					graph.updateNode(node, {forces: node.forces});
 					mainSelection.clear();
 					transientRenderer.setBoundingBox(null);
 					transientRenderer.redraw();
