@@ -112,25 +112,38 @@ var testData =
 				id: 1,
 				position: [32, 32],
 				displacement: [0, 0, 0],
-				freedom: [true, false, true],
-				rotation: -45,
-				forces: [[0, 0, 0]]
+				support: {
+					freedom: [true, false, true],
+					rotation: -45
+				},
+				forces: []
 			},
 			{
 				id: 2,
 				position: [288, 32],
 				displacement: [0, 0, 0],
-				freedom: [false, false, true],
-				rotation: 0,
-				forces: [[0, 0, 0]]
+				support: {
+					freedom: [false, false, true],
+					rotation: 0
+				},
+				forces: []
 			},
 			{
 				id: 3,
 				position: [160, 160],
 				displacement: [0, 0, 0],
-				freedom: [true, true, true],
-				rotation: 0,
-				forces: [[0, -100, 0], [50, 0, 0]]
+				support: {
+					freedom: [true, true, true],
+					rotation: 0
+				},
+				forces: [
+					{
+						vector: [0, -100, 0]
+					},
+					{
+						vector: [50, 0, 0]
+					}
+				]
 			}
 		],
 		elements: [

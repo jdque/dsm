@@ -30,8 +30,8 @@ Graph.Link = function (settings) {
 	this.id 		= settings.id         || -1;
 	this.source 	= settings.source	  || null;
 	this.target 	= settings.target	  || null;
-	this.material   = settings.material   || new Graph.Material({});
-	this.section    = settings.section    || new Graph.Section({});
+	this.material   = settings.material   || null;
+	this.section    = settings.section    || null;
 }
 
 Graph.Support = function (settings) {
@@ -88,14 +88,14 @@ Graph.fromJSON = function (json) {
 		graphNode.support = new Graph.Support({
 			id: -1,
 			parentNode: graphNode,
-			freedom: node['freedom'],
-			rotation: node['rotation']
+			freedom: node['support']['freedom'],
+			rotation: node['support']['rotation']
 		});
 		graphNode.forces = node['forces'].map(function (force, idx) {
 			return new Graph.Force({
 				id: idx,
 				parentNode: graphNode,
-				vector: force
+				vector: force['vector']
 			});
 		});
 		graph.addNode(graphNode);
