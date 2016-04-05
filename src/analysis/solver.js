@@ -30,7 +30,7 @@ Solver.prototype.solveNodes = function (resultGraph) {
 
 		var elementR = this._createFlexureR(
 			link.source.position, link.target.position,
-			link.source.rotation, link.target.rotation);
+			link.source.support.rotation, link.target.support.rotation);
 
 		var elementK = this._createFlexureK(
 			link.section.area, link.material.elasticMod, length, link.section.momInertia,
@@ -67,22 +67,23 @@ Solver.prototype.solveNodes = function (resultGraph) {
 	var globalR = [];
 	var globalIsFree = [];
 	graph.nodes.forEach(function (node) {
-		globalA.push.apply(globalA, [node.rotation, node.rotation, 0]);
-		globalU.push.apply(globalU, node.displacement);
-		globalR.push.apply(globalR, [0, 0, 0]);
-		globalIsFree.push.apply(globalIsFree, node.freedom);
-
+		var support = node.support;
 		var summedForce = [0, 0, 0];
 		node.forces.forEach(function (force) {
 			summedForce[0] += force.vector[0];
 			summedForce[1] += force.vector[1];
 			summedForce[2] += force.vector[2];
 		});
+
+		globalA.push.apply(globalA, [support.rotation, support.rotation, 0]);
+		globalU.push.apply(globalU, node.displacement);
+		globalR.push.apply(globalR, [0, 0, 0]);
+		globalIsFree.push.apply(globalIsFree, support.freedom);
 		globalF.push.apply(globalF, [
-			summedForce[0] * Math.cos(node.rotation * Math.PI / 180) +
-			summedForce[1] * Math.cos((90-node.rotation) * Math.PI / 180),
-			summedForce[0] * Math.sin(node.rotation * Math.PI / 180) +
-			summedForce[1] * Math.sin((90-node.rotation) * Math.PI / 180),
+			summedForce[0] * Math.cos(support.rotation * Math.PI / 180) +
+			summedForce[1] * Math.cos((90-support.rotation) * Math.PI / 180),
+			summedForce[0] * Math.sin(support.rotation * Math.PI / 180) +
+			summedForce[1] * Math.sin((90-support.rotation) * Math.PI / 180),
 			summedForce[2]
 		]);
 	});

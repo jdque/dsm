@@ -46,9 +46,11 @@ var selectionState = {
 		stage.on("dragend", function (e) {
 			var selectedObject = mainSelection.get();
 			if (selectedObject instanceof Interactables.Support) {
-				var node = graphRenderer.getGraphNode(selectedObject.getParent());
+				var support = graphRenderer.getGraphSupport(selectedObject);
+				var node = support.parentNode;
+				support.rotation = -selectedObject.rotation();
 				graph.updateNode(node, {
-					rotation: -selectedObject.rotation()
+					support: support
 				});
 			}
 			else if (selectedObject instanceof Interactables.Force) {
@@ -215,7 +217,8 @@ function setupDOM() {
 			var selectedObject = mainSelection.get();
 			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
 				var node = graphRenderer.getGraphNode(selectedObject.getParent());
-				graph.updateNode(node, {freedom: [false, false, false]});
+				node.support.freedom = [false, false, false];
+				graph.updateNode(node, {support: node.support});
 			}
 		}
 	}
@@ -225,7 +228,8 @@ function setupDOM() {
 			var selectedObject = mainSelection.get();
 			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
 				var node = graphRenderer.getGraphNode(selectedObject.getParent());
-				graph.updateNode(node, {freedom: [false, false, true]});
+				node.support.freedom = [false, false, true];
+				graph.updateNode(node, {support: node.support});
 			}
 		}
 	}
@@ -235,7 +239,8 @@ function setupDOM() {
 			var selectedObject = mainSelection.get();
 			if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
 				var node = graphRenderer.getGraphNode(selectedObject.getParent());
-				graph.updateNode(node, {freedom: [true, false, true]});
+				node.support.freedom = [true, false, true];
+				graph.updateNode(node, {support: node.support});
 			}
 		}
 	}
@@ -307,10 +312,12 @@ function setupDOM() {
 			}
 			else if (selectedObject instanceof Interactables.Support) {
 				if (e.keyCode === 46) {
-					var node = graphRenderer.getGraphNode(selectedObject.getParent());
+					var support = graphRenderer.getGraphSupport(selectedObject);
+					var node = support.parentNode;
+					support.freedom = [true, true, true];
+					support.rotation = 0;
 					graph.updateNode(node, {
-						freedom: [true, true, true],
-						rotation: 0
+						support: support
 					});
 					mainSelection.clear();
 					transientRenderer.setBoundingBox(null);

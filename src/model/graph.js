@@ -22,17 +22,23 @@ Graph.Node = function (settings) {
 	this.id           = settings.id           || -1;
 	this.position     = settings.position     || [0, 0];
 	this.displacement = settings.displacement || [0, 0, 0];
-	this.freedom      = settings.freedom      || [true, true, true];
-	this.rotation     = settings.rotation     || 0;
-	this.forces       = settings.forces       || [[0, 0, 0]];
+	this.support      = settings.support      || new Graph.Support({});
+	this.forces       = settings.forces       || [];
 }
 
 Graph.Link = function (settings) {
 	this.id 		= settings.id         || -1;
 	this.source 	= settings.source	  || null;
 	this.target 	= settings.target	  || null;
-	this.material   = settings.material   || null;
-	this.section    = settings.section    || null;
+	this.material   = settings.material   || new Graph.Material({});
+	this.section    = settings.section    || new Graph.Section({});
+}
+
+Graph.Support = function (settings) {
+	this.id         = settings.id         || -1;
+	this.parentNode = settings.parentNode || null;
+	this.freedom    = settings.freedom    || [true, true, true];
+	this.rotation   = settings.rotation   || 0;
 }
 
 Graph.Force = function (settings) {
@@ -76,9 +82,14 @@ Graph.fromJSON = function (json) {
 			id: node['id'],
 			position: node['position'],
 			displacement: node['displacement'],
-			freedom: node['freedom'],
-			rotation: node['rotation'],
+			support: null,
 			forces: []
+		});
+		graphNode.support = new Graph.Support({
+			id: -1,
+			parentNode: graphNode,
+			freedom: node['freedom'],
+			rotation: node['rotation']
 		});
 		graphNode.forces = node['forces'].map(function (force, idx) {
 			return new Graph.Force({

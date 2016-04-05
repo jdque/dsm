@@ -99,23 +99,27 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 	var renderNode = this.getRenderNode(node);
 
 	//Supports
-	var xFree = node.freedom[0];
-	var yFree = node.freedom[1];
-	var rotFree = node.freedom[2];
+	var support = node.support;
+	var xFree = support.freedom[0];
+	var yFree = support.freedom[1];
+	var rotFree = support.freedom[2];
 	if (!xFree & !yFree & !rotFree) {
-		var fixedSupport = Interactables.Support.create(-node.rotation, renderNode, Style.FixedSupport);
-		renderNode.add(fixedSupport);
+		var renderSupport = Interactables.Support.create(-support.rotation, renderNode, Style.FixedSupport);
+		renderNode.add(renderSupport);
+		this._associateSupport(support, renderSupport);
 	}
 	else if (!xFree && !yFree && rotFree) {
-		var pinSupport = Interactables.Support.create(-node.rotation, renderNode, Style.PinSupport);
-		renderNode.add(pinSupport);
+		var renderSupport = Interactables.Support.create(-support.rotation, renderNode, Style.PinSupport);
+		renderNode.add(renderSupport);
+		this._associateSupport(support, renderSupport);
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && !rotFree) {
 		//slider support
 	}
 	else if ((xFree && !yFree || !xFree && yFree) && rotFree) {
-		var rollerSupport = Interactables.Support.create(-node.rotation, renderNode, Style.RollerSupport);
-		renderNode.add(rollerSupport);
+		var renderSupport = Interactables.Support.create(-support.rotation, renderNode, Style.RollerSupport);
+		renderNode.add(renderSupport);
+		this._associateSupport(support, renderSupport);
 	}
 
 	//Forces
@@ -199,6 +203,10 @@ GraphRenderer.prototype.getGraphLink = function (renderLink) {
 	return renderLink._graphLink;
 }
 
+GraphRenderer.prototype.getGraphSupport = function (renderSupport) {
+	return renderSupport._graphSupport;
+}
+
 GraphRenderer.prototype.getGraphForce = function (renderForce) {
 	return renderForce._graphForce;
 }
@@ -221,6 +229,10 @@ GraphRenderer.prototype._associateLink = function (link, renderObject) {
 	renderObject._graphLink = link;
 }
 
+GraphRenderer.prototype._associateSupport = function (support, renderObject) {
+	renderObject._graphSupport = support;
+}
+
 GraphRenderer.prototype._associateForce = function (force, renderObject) {
 	renderObject._graphForce = force;
 }
@@ -233,6 +245,10 @@ GraphRenderer.prototype._unassociateNode = function (node, renderObject) {
 GraphRenderer.prototype._unassociateLink = function (link, renderObject) {
 	renderObject._graphLink = null;
 	delete this.linkMap[link['id']];
+}
+
+GraphRenderer.prototype._unassociateSupport = function (support, renderObject) {
+	renderObject._graphSupport = null;
 }
 
 GraphRenderer.prototype._unassociateForce = function (force, renderObject) {
