@@ -120,8 +120,8 @@ GraphRenderer.prototype.addNodeAttachments = function (node) {
 
 	//Forces
 	node.forces.forEach(function (force) {
-		if (force[0] !== 0 || force[1] !== 0) {
-			var angle = -Math.atan2(force[1], force[0]) * 180 / Math.PI - 90;
+		if (force.vector[0] !== 0 || force.vector[1] !== 0) {
+			var angle = -Math.atan2(force.vector[1], force.vector[0]) * 180 / Math.PI - 90;
 			var renderForce = Interactables.Force.create(angle, renderNode);
 			renderNode.add(renderForce);
 			this._associateForce(force, renderForce);

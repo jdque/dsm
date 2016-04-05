@@ -35,6 +35,12 @@ Graph.Link = function (settings) {
 	this.section    = settings.section    || null;
 }
 
+Graph.Force = function (settings) {
+	this.id         = settings.id         || -1;
+	this.parentNode = settings.parentNode || null;
+	this.vector     = settings.vector     || [0, 0, 0];
+}
+
 Graph.Material = function (settings) {
 	this.id 		= settings.id         || -1;
 	this.elasticMod = settings.elasticMod || 0;
@@ -66,14 +72,22 @@ Graph.fromJSON = function (json) {
 	})
 
 	json['nodes'].forEach(function (node) {
-		graph.addNode(new Graph.Node({
+		var graphNode = new Graph.Node({
 			id: node['id'],
 			position: node['position'],
 			displacement: node['displacement'],
 			freedom: node['freedom'],
 			rotation: node['rotation'],
-			forces: node['forces']
-		}));
+			forces: []
+		});
+		graphNode.forces = node['forces'].map(function (force, idx) {
+			return new Graph.Force({
+				id: idx,
+				parentNode: graphNode,
+				vector: force
+			});
+		});
+		graph.addNode(graphNode);
 	});
 
 	json['elements'].forEach(function (element) {

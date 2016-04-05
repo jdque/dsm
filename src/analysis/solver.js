@@ -72,7 +72,12 @@ Solver.prototype.solveNodes = function (resultGraph) {
 		globalR.push.apply(globalR, [0, 0, 0]);
 		globalIsFree.push.apply(globalIsFree, node.freedom);
 
-		var summedForce = N.add.apply(node.forces, node.forces);
+		var summedForce = [0, 0, 0];
+		node.forces.forEach(function (force) {
+			summedForce[0] += force.vector[0];
+			summedForce[1] += force.vector[1];
+			summedForce[2] += force.vector[2];
+		});
 		globalF.push.apply(globalF, [
 			summedForce[0] * Math.cos(node.rotation * Math.PI / 180) +
 			summedForce[1] * Math.cos((90-node.rotation) * Math.PI / 180),
