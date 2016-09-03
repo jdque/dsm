@@ -147,11 +147,9 @@ Support.create = function (rotation, nodeCircle, style) {
 
 Support.prototype = Object.create(Konva.Line.prototype);
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = {
-    	NodeCircle: NodeCircle,
-    	LinkLine: LinkLine,
-    	Force: Force,
-    	Support: Support
-    };
-}
+module.exports = {
+	NodeCircle: NodeCircle,
+	LinkLine: LinkLine,
+	Force: Force,
+	Support: Support
+};

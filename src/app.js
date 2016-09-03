@@ -377,6 +377,4 @@ var App = {
     run: run
 };
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = App;
-}
+module.exports = App;

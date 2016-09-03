@@ -1,5 +1,5 @@
 var Konva = require('konva');
-var Graph = require('../model/Graph.js');
+var Graph = require('../model/graph.js');
 var Style = require('./style.js');
 var Interactables = require('./interactables.js');
 
@@ -542,11 +542,9 @@ TransientRenderer.prototype.redraw = function () {
 	this.canvas.draw();
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = {
-    	GraphRenderer: GraphRenderer,
-    	ResultGraphRenderer: ResultGraphRenderer,
-		GridRenderer: GridRenderer,
-		TransientRenderer: TransientRenderer
-    };
-}
+module.exports = {
+	GraphRenderer: GraphRenderer,
+	ResultGraphRenderer: ResultGraphRenderer,
+	GridRenderer: GridRenderer,
+	TransientRenderer: TransientRenderer
+};

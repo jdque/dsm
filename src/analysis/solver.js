@@ -368,6 +368,4 @@ Util.swapRows1D = function (vec, i, j) {
 	vec[j] = temp;
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = Solver;
-}
+module.exports = Solver;

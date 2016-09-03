@@ -47,6 +47,15 @@ Graph.Force = function (settings) {
 	this.vector     = settings.vector     || [0, 0, 0];
 }
 
+Graph.LineForce = function (settings) {
+	this.id          = settings.id          || -1;
+	this.parentLink  = settings.parentLink  || null;
+	this.leftVector  = settings.leftVector  || [0, 0, 0];
+	this.rightVector = settings.rightVector || [0, 0, 0];
+	this.leftOffset  = settings.leftOffset  || 0.0;
+	this.rightOffset = settings.rightOffset || 0.0;
+}
+
 Graph.Material = function (settings) {
 	this.id 		= settings.id         || -1;
 	this.elasticMod = settings.elasticMod || 0;
@@ -254,6 +263,4 @@ Graph.prototype.off = function (type, func) {
 	this.notifier.removeListener(type, func);
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = Graph;
-}
+module.exports = Graph;

@@ -185,6 +185,4 @@ var testData =
 	}
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = testData;
-}
+module.exports = testData;

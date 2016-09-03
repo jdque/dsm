@@ -76,6 +76,4 @@ var Style = {
 	}
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = Style;
-}
+module.exports = Style;

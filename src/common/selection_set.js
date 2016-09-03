@@ -15,6 +15,4 @@ SelectionSet.prototype.get = function () {
 	return this.selectedObject;
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = SelectionSet;
-}
+module.exports = SelectionSet;

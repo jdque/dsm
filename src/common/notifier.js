@@ -32,6 +32,4 @@ Notifier.prototype.notify = function (type, data) {
 	});
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = Notifier;
-}
+module.exports = Notifier;

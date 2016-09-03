@@ -21,6 +21,4 @@ StateManager.prototype.getActiveStateId = function () {
 	return this.activeStateId;
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = StateManager;
-}
+module.exports = StateManager;

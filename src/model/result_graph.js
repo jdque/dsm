@@ -106,6 +106,4 @@ ResultGraph.prototype.off = function (type, func) {
 	this.notifier.removeListener(type, func);
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = ResultGraph;
-}
+module.exports = ResultGraph;
