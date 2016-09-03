@@ -1,10 +1,10 @@
 <html>
 	<head>
-		<script src="lib/system-0.19.3.js"></script>
+		<script src="bin/fem.js"></script>
 		<script>
-			System.import('src/fem.js').then(function (app) {
-				app.run();
-			});
+			window.onload = function () {
+				App.run();
+			}
 		</script>
 	</head>
 	<body style="background-color:#eeeeee">
