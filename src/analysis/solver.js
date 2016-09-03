@@ -1,4 +1,4 @@
-var N = require('../../lib/numeric-1.2.6.js');
+var N = require('numeric');
 
 function Solver() {}
 

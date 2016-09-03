@@ -1,4 +1,4 @@
-var Konva = require('../../lib/konva-0.12.2.js');
+var Konva = require('konva');
 var Style = require('./style.js');
 
 function extend(destination, source) {

@@ -1,4 +1,4 @@
-var Konva = require('../../lib/konva-0.12.2.js');
+var Konva = require('konva');
 var Graph = require('../model/Graph.js');
 var Style = require('./style.js');
 var Interactables = require('./interactables.js');
