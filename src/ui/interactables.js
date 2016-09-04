@@ -1,5 +1,5 @@
 var Konva = require('konva');
-var Style = require('./style.js');
+var Style = require('./style');
 
 function extend(destination, source) {
 	for (var k in source) {

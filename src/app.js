@@ -1,13 +1,13 @@
-var StateManager = require('./common/state_manager.js');
-var SelectionSet = require('./common/selection_set.js');
-var Graph = require('./model/graph.js');
-var ResultGraph = require('./model/result_graph.js');
-var Solver = require('./analysis/solver.js');
-var Style = require('./ui/style.js');
-var Interactables = require('./ui/interactables.js');
-var Renderers = require('./ui/renderers.js');
+var StateManager = require('./common/state_manager');
+var SelectionSet = require('./common/selection_set');
+var Graph = require('./model/graph');
+var ResultGraph = require('./model/result_graph');
+var Solver = require('analysis/solver');
+var Style = require('./ui/style');
+var Interactables = require('./ui/interactables');
+var Renderers = require('./ui/renderers');
 
-var testData = require('./test_data.js');
+var testData = require('./test_data');
 
 var appState;
 var stage;

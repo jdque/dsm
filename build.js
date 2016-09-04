@@ -1,15 +1,35 @@
 var Builder = require('systemjs-builder');
-var builder = new Builder();
+
+var builder = new Builder('src');
 
 builder
-.buildStatic('src/app.js', 'bin/fem.js', {
-	externals: ['konva', 'numeric'],
+.buildStatic('app.js', 'bin/fem.js', {
+	config: {
+		defaultJSExtensions: true,
+		packages: {
+			'ui': {
+				main: 'index.js'
+			},
+			'model': {
+				main: 'index.js'
+			},
+			'common': {
+				main: 'index.js'
+			},
+			'analysis': {
+				main: 'index.js'
+			}
+		}
+	},
+	externals: ['konva.js', 'numeric.js'],
 	globalName: 'App',
 	globalDeps: {
-		'konva': 'Konva',
-		'numeric': 'numeric'
+		'konva.js': 'Konva',
+		'numeric.js': 'numeric'
 	},
-	minify: true
+	minify: false,
+	runtime: false,
+	sourceMaps: true
 })
 .then(function () {
 	console.log("Build Complete")

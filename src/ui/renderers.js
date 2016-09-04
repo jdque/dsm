@@ -1,7 +1,7 @@
 var Konva = require('konva');
-var Graph = require('../model/graph.js');
-var Style = require('./style.js');
-var Interactables = require('./interactables.js');
+var Graph = require('model/graph');
+var Style = require('./style');
+var Interactables = require('./interactables');
 
 function GraphRenderer(canvas, origin) {
 	this.canvas = canvas;

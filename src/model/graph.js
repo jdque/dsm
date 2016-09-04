@@ -1,4 +1,4 @@
-var Notifier = require('../common/notifier.js');
+var Notifier = require('../common/notifier');
 
 function Graph() {
 	this.nodes = [];
