@@ -1,24 +1,33 @@
 function StateManager(stage) {
-	this.stage = stage;
 	this.stateMap = {};
 	this.activeStateId = null;
 }
 
-StateManager.prototype.addState = function (id, object) {
-	this.stateMap[id] = object;
+StateManager.prototype.addState = function (id) {
+	this.stateMap[id] = [];
 }
 
 StateManager.prototype.setState = function (stateId) {
 	if (this.activeStateId) {
-		this.stateMap[this.activeStateId].exit();
+		this.stateMap[this.activeStateId].forEach(function (handler) {
+			handler.exit();
+		})
 	}
 	this.activeStateId = stateId;
-	this.stage.off();
-	this.stateMap[stateId].enter();
+	this.stateMap[stateId].forEach(function (handler) {
+		handler.enter();
+	});
 }
 
 StateManager.prototype.getActiveStateId = function () {
 	return this.activeStateId;
+}
+
+StateManager.prototype.on = function (stateId, handler) {
+	if (!this.stateMap[stateId])
+		return;
+
+	this.stateMap[stateId].push(handler);
 }
 
 module.exports = StateManager;

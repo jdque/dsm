@@ -18,6 +18,9 @@ builder
 			},
 			'analysis': {
 				main: 'index.js'
+			},
+			'components': {
+				main: 'index.js'
 			}
 		}
 	},
@@ -28,7 +31,7 @@ builder
 		'numeric.js': 'numeric'
 	},
 	minify: false,
-	runtime: false,
+	runtime: true,
 	sourceMaps: true
 })
 .then(function () {
