@@ -9,7 +9,6 @@ var DisplayComponent = function () {
 	var mainSelection;
 
 	var stage;
-	var canvas;
 	var origin;
 	var graphRenderer;
 	var resultRenderer;
@@ -31,7 +30,6 @@ var DisplayComponent = function () {
 					var selectedObject = mainSelection.get();
 					if (selectedObject instanceof Interactables.NodeCircle) {
 						gridRenderer.snapObject(selectedObject, "center");
-						canvas.draw();
 						graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
 							position: [selectedObject.x(), origin[1] - selectedObject.y()]
 						});
@@ -137,20 +135,20 @@ var DisplayComponent = function () {
 			enter: function () {
 				//TODO - deactivate dragging on nodes
 				activeEndNode = Interactables.NodeCircle.create({x: null, y: null});
-				canvas.add(activeEndNode);
+				transientRenderer.layer.add(activeEndNode);
 
 				var selectedObject = mainSelection.get();
 				if (selectedObject && selectedObject.name() === Interactables.NodeCircle.Name) {
 					startNodeCircle = selectedObject.getParent();
 
 					activeLine = Interactables.LinkLine.create(startNodeCircle.position(), startNodeCircle.position());
-					canvas.add(activeLine);
+					transientRenderer.layer.add(activeLine);
 					activeLine.moveToBottom();
 
 					activeStartNode = Interactables.NodeCircle.create(startNodeCircle.position());
-					canvas.add(activeStartNode);
+					transientRenderer.layer.add(activeStartNode);
 				}
-				canvas.draw();
+				transientRenderer.layer.draw();
 
 				stage.on("contentClick contentTouchend", function () {
 					var placementPosition = activeEndNode.x() !== null && activeEndNode.y() !== null ?
@@ -187,7 +185,7 @@ var DisplayComponent = function () {
 									 activeEndNode.x(), activeEndNode.y()]
 						});
 					}
-					canvas.draw();
+					transientRenderer.layer.draw();
 				});
 			},
 
@@ -199,7 +197,7 @@ var DisplayComponent = function () {
 				if (activeLine) {
 					activeLine.destroy();
 				}
-				canvas.draw();
+				transientRenderer.layer.draw();
 				activeStartNode = null;
 				activeEndNode = null;
 				activeLine = null;
@@ -300,9 +298,7 @@ var DisplayComponent = function () {
 			var objectLayer = new Konva.Layer();
 			stage.add(gridLayer, objectLayer, transientLayer);
 
-			canvas = transientLayer;
-
-			origin = [0, canvas.height()];
+			origin = [0, objectLayer.height()];
 
 			gridRenderer = new Renderers.GridRenderer(gridLayer);
 			gridRenderer.setSpacing(32, 32);

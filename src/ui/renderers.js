@@ -3,8 +3,8 @@ var Graph = require('model/graph');
 var Style = require('./style');
 var Interactables = require('./interactables');
 
-function GraphRenderer(canvas, origin) {
-	this.canvas = canvas;
+function GraphRenderer(layer, origin) {
+	this.layer = layer;
 	this.origin = origin;
 	this.graph = new Graph();
 	this.nodeMap = {};
@@ -47,7 +47,7 @@ GraphRenderer.prototype.redraw = function () {
 		}
 	}.bind(this));
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.clear = function () {
@@ -76,8 +76,8 @@ GraphRenderer.prototype.setGraph = function (graph) {
 
 GraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = Interactables.NodeCircle.create({x: node.position[0], y: this.origin[1] - node.position[1]});
-	this.canvas.add(nodeCircle);
-	this.canvas.draw();
+	this.layer.add(nodeCircle);
+	this.layer.draw();
 
 	this._associateNode(node, nodeCircle);
 	this.addNodeAttachments(node);
@@ -88,9 +88,9 @@ GraphRenderer.prototype.addLink = function (link) {
 	var toNode = this.getRenderNode(link.target);
 
 	var linkLine = Interactables.LinkLine.create(fromNode.position(), toNode.position());
-	this.canvas.add(linkLine);
+	this.layer.add(linkLine);
 	linkLine.moveToBottom();
-	this.canvas.draw();
+	this.layer.draw();
 
 	this._associateLink(link, linkLine);
 }
@@ -144,20 +144,20 @@ GraphRenderer.prototype.removeNode = function (node) {
 	var renderNode = this.getRenderNode(node);
 	this._unassociateNode(node, renderNode);
 	renderNode.destroy();
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.removeLink = function (link) {
 	var renderLink = this.getRenderLink(link);
 	this._unassociateLink(link, renderLink);
 	renderLink.destroy();
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.removeNodeAttachments = function (node) {
 	var renderNode = this.getRenderNode(node);
 	renderNode.destroyAttachments();
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.updateNode = function (node) {
@@ -179,7 +179,7 @@ GraphRenderer.prototype.updateNode = function (node) {
 	this.removeNodeAttachments(node);
 	this.addNodeAttachments(node);
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.updateLink = function (link) {
@@ -192,7 +192,7 @@ GraphRenderer.prototype.updateLink = function (link) {
 				 targetRenderNode.x(), targetRenderNode.y()]
 	});
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GraphRenderer.prototype.getGraphNode = function (renderNode) {
@@ -257,8 +257,8 @@ GraphRenderer.prototype._unassociateForce = function (force, renderObject) {
 
 //------------------------------------------------------------------------------
 
-function ResultGraphRenderer(canvas, origin) {
-	this.canvas = canvas;
+function ResultGraphRenderer(layer, origin) {
+	this.layer = layer;
 	this.origin = origin;
 	this.graph = new Graph();
 	this.nodeMap = {};
@@ -285,7 +285,7 @@ ResultGraphRenderer.prototype.redraw = function () {
 		}
 	}.bind(this));
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 ResultGraphRenderer.prototype.clear = function () {
@@ -308,8 +308,8 @@ ResultGraphRenderer.prototype.setGraph = function (graph) {
 ResultGraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = Interactables.NodeCircle.create(
 		{x: node.position[0], y: this.origin[1] - node.position[1]}, Style.ResultNode);
-	this.canvas.add(nodeCircle);
-	this.canvas.draw();
+	this.layer.add(nodeCircle);
+	this.layer.draw();
 
 	this._associateNode(node, nodeCircle);
 }
@@ -318,9 +318,9 @@ ResultGraphRenderer.prototype.addLink = function (link) {
 	var fromNode = this.getRenderNode(link.source);
 	var toNode = this.getRenderNode(link.target);
 	var linkLine = Interactables.LinkLine.create(fromNode.position(), toNode.position(), Style.ResultLink);
-	this.canvas.add(linkLine);
+	this.layer.add(linkLine);
 	linkLine.moveToBottom();
-	this.canvas.draw();
+	this.layer.draw();
 
 	this._associateLink(link, linkLine);
 }
@@ -340,7 +340,7 @@ ResultGraphRenderer.prototype.updateNode = function (node) {
 		this.updateLink(link);
 	}.bind(this));
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 ResultGraphRenderer.prototype.updateLink = function (link) {
@@ -353,7 +353,7 @@ ResultGraphRenderer.prototype.updateLink = function (link) {
 				 targetRenderNode.x(), targetRenderNode.y()]
 	});
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 ResultGraphRenderer.prototype.getGraphNode = function (renderNode) {
@@ -392,8 +392,8 @@ ResultGraphRenderer.prototype._unassociateLink = function (link) {
 
 //------------------------------------------------------------------------------
 
-function GridRenderer(canvas) {
-	this.canvas = canvas;
+function GridRenderer(layer) {
+	this.layer = layer;
 	this.lines = [];
 	this.xSpacing = 32;
 	this.ySpacing = 32;
@@ -407,24 +407,24 @@ GridRenderer.prototype.setSpacing = function (xSpacing, ySpacing) {
 GridRenderer.prototype.redraw = function () {
 	this.clear();
 
-	for (var y = 0; y < this.canvas.height(); y += this.ySpacing) {
+	for (var y = 0; y < this.layer.height(); y += this.ySpacing) {
 		var line = new Konva.Line(Style.GridLine);
 		line.setAttrs({
 			listening: false
 		});
-		line.points([0, y, this.canvas.width(), y]);
-		this.canvas.add(line);
+		line.points([0, y, this.layer.width(), y]);
+		this.layer.add(line);
 		this.lines.push(line);
 	}
 
-	for (var x = 0; x < this.canvas.width(); x += this.xSpacing) {
+	for (var x = 0; x < this.layer.width(); x += this.xSpacing) {
 		var line = new Konva.Line(Style.GridLine);
-		line.points([x, 0, x, this.canvas.height()]);
-		this.canvas.add(line);
+		line.points([x, 0, x, this.layer.height()]);
+		this.layer.add(line);
 		this.lines.push(line);
 	}
 
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GridRenderer.prototype.clear = function () {
@@ -432,7 +432,7 @@ GridRenderer.prototype.clear = function () {
 		line.destroy();
 	});
 	this.lines = [];
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 GridRenderer.prototype.snapObject = function (object, anchor) {
@@ -455,8 +455,8 @@ GridRenderer.prototype.snapObject = function (object, anchor) {
 
 //------------------------------------------------------------------------------
 
-function TransientRenderer(canvas) {
-	this.canvas = canvas;
+function TransientRenderer(layer) {
+	this.layer = layer;
 	this.boundingBox = null;
 	this.boundingBoxTarget = null;
 
@@ -474,7 +474,7 @@ TransientRenderer.prototype.setBoundingBox = function (object) {
 	this.boundingBoxTarget = object;
 	if (!this.boundingBox) {
 		this.boundingBox = new Konva.Rect(Style.BoundingBox);
-		this.canvas.add(this.boundingBox);
+		this.layer.add(this.boundingBox);
 	}
 	this.updateBoundingBox();
 }
@@ -539,7 +539,7 @@ TransientRenderer.prototype.clearHighlights = function () {
 }
 
 TransientRenderer.prototype.redraw = function () {
-	this.canvas.draw();
+	this.layer.draw();
 }
 
 module.exports = {
