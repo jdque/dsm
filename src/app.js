@@ -7,23 +7,19 @@ var DisplayComponent = require('./components/display_component');
 var testData = require('./test_data');
 
 function run() {
-	//graph = new Graph();
 	var graph = Graph.fromJSON(testData.test3);
 	var mainSelection = new SelectionSet();
 	var appActions = new Notifier();
-	var appState = new StateManager();
+	var appState = new StateManager(['selection', 'draw']);
 
-	appState.addState('selection');
-	appState.addState('draw');
-
-	var displayComponent = new DisplayComponent(document.getElementById('canvas'), {
+	var displayComponent = DisplayComponent.create(document.getElementById('canvas'), {
 		appActions: appActions,
 		appState: appState,
 		graph: graph,
 		mainSelection: mainSelection
 	});
 
-	var actionComponent = new ActionComponent(document.getElementById('actions'), {
+	var actionComponent = ActionComponent.create(document.getElementById('actions'), {
 		appActions: appActions,
 		appState: appState,
 		graph: graph,

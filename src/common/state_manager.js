@@ -1,10 +1,16 @@
-function StateManager(stage) {
+function StateManager(states) {
 	this.stateMap = {};
 	this.activeStateId = null;
+
+	if (states instanceof Array) {
+		states.forEach(function (stateId) {
+			this.addState(stateId);
+		}.bind(this));
+	}
 }
 
-StateManager.prototype.addState = function (id) {
-	this.stateMap[id] = [];
+StateManager.prototype.addState = function (stateId) {
+	this.stateMap[stateId] = [];
 }
 
 StateManager.prototype.setState = function (stateId) {
