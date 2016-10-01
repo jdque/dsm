@@ -56,9 +56,12 @@ function LinkLine(settings) {
 	Konva.Line.apply(this, [settings]);
 }
 
+LinkLine.Name = "LinkLine";
+
 LinkLine.create = function (fromPos, toPos, style) {
 	var line = new LinkLine(style || Style.Link);
 	line.setAttrs({
+		name: LinkLine.Name,
 		points: [fromPos.x, fromPos.y, toPos.x, toPos.y]
 	});
 
@@ -73,9 +76,12 @@ function Force(settings) {
 	Konva.Arrow.apply(this, [settings]);
 }
 
+Force.Name = "Force";
+
 Force.create = function (rotation, nodeCircle, style) {
 	var force = new Force(style || Style.Force);
 	force.setAttrs({
+		name: Force.Name,
 		x: (nodeCircle.circle.height() / 2 + force.height() + 4) * Math.sin(rotation * Math.PI / 180),
 		y: -(nodeCircle.circle.height() / 2 + force.height() + 4) * Math.cos(rotation * Math.PI / 180),
 		draggable: true,
@@ -113,9 +119,12 @@ function Support(settings) {
 	Konva.Line.apply(this, [settings]);
 }
 
+Support.Name = "Support";
+
 Support.create = function (rotation, nodeCircle, style) {
 	var support = new Support(style);
 	support.setAttrs({
+		name: Support.Name,
 		x: nodeCircle.circle.height() / 2 * Math.sin(-rotation * Math.PI / 180),
 		y: nodeCircle.circle.height() / 2 * Math.cos(rotation * Math.PI / 180),
 		draggable: true,
