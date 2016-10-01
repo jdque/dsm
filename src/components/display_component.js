@@ -9,7 +9,8 @@ var DisplayComponent = function () {
 	var mainSelection;
 
 	var stage;
-	var origin;
+	var graphToDisplayPos;
+	var displayToGraphPos;
 	var graphRenderer;
 	var resultRenderer;
 	var gridRenderer;
@@ -31,7 +32,7 @@ var DisplayComponent = function () {
 					if (selectedObject instanceof Interactables.NodeCircle) {
 						gridRenderer.snapObject(selectedObject, "center");
 						graph.updateNode(graphRenderer.getGraphNode(selectedObject), {
-							position: [selectedObject.x(), origin[1] - selectedObject.y()]
+							position: displayToGraphPos(selectedObject.position())
 						});
 					}
 					transientRenderer.updateBoundingBox();
@@ -105,7 +106,7 @@ var DisplayComponent = function () {
 		function createNewNode(position) {
 			var node = new Graph.Node({
 				id: Math.round(Math.random(1) * 100000),
-				position: [position.x, origin[1] - position.y]
+				position: displayToGraphPos(position)
 			});
 			graph.addNode(node);
 			return graphRenderer.getRenderNode(node);
@@ -307,7 +308,23 @@ var DisplayComponent = function () {
 			var objectLayer = new Konva.Layer();
 			stage.add(gridLayer, objectLayer, transientLayer);
 
-			origin = [0, objectLayer.height()];
+			var flipX = 1;
+			var flipY = -1;
+			var translateX = Math.floor(objectLayer.width() * 0.5);
+			var translateY = Math.floor(objectLayer.height() * 0.5);
+			graphToDisplayPos = function (graphPos) {
+				return {
+					x: graphPos[0] * flipX + translateX,
+					y: graphPos[1] * flipY + translateY
+				};
+			}
+
+			displayToGraphPos = function (displayPos) {
+				return [
+					(displayPos.x - translateX) * flipX,
+					(displayPos.y - translateY) * flipY
+				];
+			}
 
 			gridRenderer = new Renderers.GridRenderer(gridLayer);
 			gridRenderer.setSpacing(32, 32);
@@ -315,11 +332,11 @@ var DisplayComponent = function () {
 
 			transientRenderer = new Renderers.TransientRenderer(transientLayer);
 
-			graphRenderer = new Renderers.GraphRenderer(objectLayer, origin);
+			graphRenderer = new Renderers.GraphRenderer(objectLayer, graphToDisplayPos);
 			graphRenderer.setGraph(graph);
 			graphRenderer.redraw();
 
-			resultRenderer = new Renderers.ResultGraphRenderer(objectLayer, origin);
+			resultRenderer = new Renderers.ResultGraphRenderer(objectLayer, graphToDisplayPos);
 
 			parent.addEventListener("mousedown", function (e) {
 				if (document.activeElement !== parent)
@@ -335,6 +352,16 @@ var DisplayComponent = function () {
 							});
 							mainSelection.clear();
 						}
+					}
+					if (e.shiftKey && e.keyCode === 187) {
+						gridRenderer.modifySpacing(+8, +8);
+						gridRenderer.redraw();
+						e.preventDefault();
+					}
+					if (e.shiftKey && e.keyCode === 189) {
+						gridRenderer.modifySpacing(-8, -8);
+						gridRenderer.redraw();
+						e.preventDefault();
 					}
 				}
 			}, false);

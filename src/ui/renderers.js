@@ -3,9 +3,9 @@ var Graph = require('model/graph');
 var Style = require('./style');
 var Interactables = require('./interactables');
 
-function GraphRenderer(layer, origin) {
+function GraphRenderer(layer, graphToDisplayPos) {
 	this.layer = layer;
-	this.origin = origin;
+	this.graphToDisplayPos = graphToDisplayPos;
 	this.graph = new Graph();
 	this.nodeMap = {};
 	this.linkMap = {};
@@ -75,7 +75,7 @@ GraphRenderer.prototype.setGraph = function (graph) {
 }
 
 GraphRenderer.prototype.addNode = function (node) {
-	var nodeCircle = Interactables.NodeCircle.create({x: node.position[0], y: this.origin[1] - node.position[1]});
+	var nodeCircle = Interactables.NodeCircle.create(this.graphToDisplayPos(node.position));
 	this.layer.add(nodeCircle);
 	this.layer.draw();
 
@@ -165,8 +165,7 @@ GraphRenderer.prototype.updateNode = function (node) {
 
 	//Position
 	renderNode.setAttrs({
-		x: node.position[0],
-		y: this.origin[1] - node.position[1]
+		position: this.graphToDisplayPos(node.position)
 	});
 
 	//Redraw links that are connected to the node
@@ -257,9 +256,9 @@ GraphRenderer.prototype._unassociateForce = function (force, renderObject) {
 
 //------------------------------------------------------------------------------
 
-function ResultGraphRenderer(layer, origin) {
+function ResultGraphRenderer(layer, graphToDisplayPos) {
 	this.layer = layer;
-	this.origin = origin;
+	this.graphToDisplayPos = graphToDisplayPos;
 	this.graph = new Graph();
 	this.nodeMap = {};
 	this.linkMap = {};
@@ -307,7 +306,7 @@ ResultGraphRenderer.prototype.setGraph = function (graph) {
 
 ResultGraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = Interactables.NodeCircle.create(
-		{x: node.position[0], y: this.origin[1] - node.position[1]}, Style.ResultNode);
+		this.graphToDisplayPos(node.position), Style.ResultNode);
 	this.layer.add(nodeCircle);
 	this.layer.draw();
 
@@ -330,8 +329,7 @@ ResultGraphRenderer.prototype.updateNode = function (node) {
 
 	//Position
 	renderNode.setAttrs({
-		x: node.position[0],
-		y: this.origin[1] - node.position[1]
+		position: this.graphToDisplayPos(node.position)
 	});
 
 	//Redraw links that are connected to the node
@@ -400,8 +398,19 @@ function GridRenderer(layer) {
 }
 
 GridRenderer.prototype.setSpacing = function (xSpacing, ySpacing) {
+	if (xSpacing <= 0 || ySpacing <= 0)
+		throw new Error("Can't set non-positive spacing for grid");
+
 	this.xSpacing = xSpacing;
 	this.ySpacing = ySpacing;
+}
+
+GridRenderer.prototype.modifySpacing = function (dx, dy) {
+	if (this.xSpacing + dx <= 0 || this.ySpacing + dy <= 0)
+		throw new Error("Can't set non-positive spacing for grid");
+
+	this.xSpacing += dx;
+	this.ySpacing += dy;
 }
 
 GridRenderer.prototype.redraw = function () {
@@ -419,6 +428,9 @@ GridRenderer.prototype.redraw = function () {
 
 	for (var x = 0; x < this.layer.width(); x += this.xSpacing) {
 		var line = new Konva.Line(Style.GridLine);
+		line.setAttrs({
+			listening: false
+		});
 		line.points([x, 0, x, this.layer.height()]);
 		this.layer.add(line);
 		this.lines.push(line);
