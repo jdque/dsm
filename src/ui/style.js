@@ -66,7 +66,7 @@ var Style = {
 	},
 
 	GridLine: {
-		stroke: 'rgba(128, 128, 128, 1.0)',
+		stroke: 'rgba(128, 128, 128, 0.7)',
 		strokeWidth: 1
 	},
 

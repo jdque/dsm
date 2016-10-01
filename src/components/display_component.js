@@ -134,7 +134,7 @@ var DisplayComponent = function () {
 		return {
 			enter: function () {
 				//TODO - deactivate dragging on nodes
-				activeEndNode = Interactables.NodeCircle.create({x: null, y: null});
+				activeEndNode = Interactables.NodeCircle.create({x: -32, y: -32});
 				transientRenderer.layer.add(activeEndNode);
 
 				var selectedObject = mainSelection.get();
@@ -185,7 +185,16 @@ var DisplayComponent = function () {
 									 activeEndNode.x(), activeEndNode.y()]
 						});
 					}
-					transientRenderer.layer.draw();
+
+					var intersectObject = stage.getIntersection(activeEndNode.position());
+					if (intersectObject && intersectObject.name() === Interactables.NodeCircle.Name) {
+						transientRenderer.highlight(activeEndNode.circle);
+					}
+					else {
+						transientRenderer.unhighlight(activeEndNode.circle);
+					}
+
+					transientRenderer.redraw();
 				});
 			},
 
