@@ -3,7 +3,7 @@ var Builder = require('systemjs-builder');
 var builder = new Builder('src');
 
 builder
-.buildStatic('app.js', 'bin/fem.js', {
+.buildStatic('app.js', 'bin/dsm.js', {
 	config: {
 		defaultJSExtensions: true,
 		packages: {
