@@ -24,11 +24,12 @@ builder
 			}
 		}
 	},
-	externals: ['konva.js', 'numeric.js'],
+	externals: ['konva.js', 'numeric.js', 'split.js'],
 	globalName: 'App',
 	globalDeps: {
 		'konva.js': 'Konva',
-		'numeric.js': 'numeric'
+		'numeric.js': 'numeric',
+		'split.js': 'Split'
 	},
 	minify: false,
 	runtime: true,

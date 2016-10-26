@@ -1,3 +1,4 @@
+var Split = require('split');
 var Notifier = require('./common/notifier');
 var StateManager = require('./common/state_manager');
 var SelectionSet = require('./common/selection_set');
@@ -32,6 +33,11 @@ function run() {
 		appState: appState,
 		graph: graph,
 		mainSelection: mainSelection
+	});
+
+	Split(['#edit', '#info'], {
+		sizes: [80, 20],
+		direction: 'vertical'
 	});
 
 	appState.setState('selection');

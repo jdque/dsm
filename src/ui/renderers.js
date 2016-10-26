@@ -308,6 +308,7 @@ ResultGraphRenderer.prototype.addNode = function (node) {
 	var nodeCircle = Interactables.NodeCircle.create(
 		this.graphToDisplayPos(node.position), Style.ResultNode);
 	this.layer.add(nodeCircle);
+	nodeCircle.moveToTop();
 	this.layer.draw();
 
 	this._associateNode(node, nodeCircle);
@@ -318,7 +319,6 @@ ResultGraphRenderer.prototype.addLink = function (link) {
 	var toNode = this.getRenderNode(link.target);
 	var linkLine = Interactables.LinkLine.create(fromNode.position(), toNode.position(), Style.ResultLink);
 	this.layer.add(linkLine);
-	linkLine.moveToBottom();
 	this.layer.draw();
 
 	this._associateLink(link, linkLine);

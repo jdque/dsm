@@ -1,17 +1,51 @@
 body {
+	overflow: hidden;
+	margin: 0px;
 	font: 14px 'Arial', Arial, sans-serif;
 }
 
+.gutter {
+	background-color: #EEEEEE;
+	background-repeat: no-repeat;
+	background-position: 50%;
+}
+
+.gutter:hover {
+	background-color: #AAAAAA;
+}
+
+.gutter.gutter-vertical {
+	border-top: 1px solid #999999;
+	border-bottom: 1px solid #999999;
+	box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+	background-image: url('assets/horizontal.png');
+	cursor: ns-resize;
+}
+
 #edit {
-	position: absolute;
-	width: 99%;
+	position: relative;
+	overflow: hidden;
 	min-width: 960px;
-	height: 95%;
+}
+
+#info {
+	position: relative;
+	overflow: auto;
+}
+
+#hud {
+	position: absolute;
+	overflow: hidden;
+	pointer-events: none;
+	width: 100%;
+	top: 0px;
+	bottom: 12px;
 }
 
 
 #actions {
 	position: absolute;
+	pointer-events: all;
 	top: 16px;
 	left: 16px;
 }
@@ -31,7 +65,7 @@ body {
 
 .action_button:hover {
 	cursor: default;
-	background-color: rgba(128, 128, 255, 1.0);
+	background-color: #ACCEF7;
 }
 
 #canvas {
@@ -45,10 +79,11 @@ body {
 
 #sidebar {
 	position: absolute;
-	top: 24px;
-	bottom: 24px;
+	pointer-events: all;
+	top: 16px;
 	right: 24px;
 	width: 240px;
+	height: 480px;
 	padding: 8px;
 	border: 2px solid #000000;
 	border-radius: 6px;

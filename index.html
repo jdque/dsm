@@ -2,6 +2,7 @@
 	<head>
 		<script src="lib/konva-0.12.2.js"></script>
 		<script src="lib/numeric-1.2.6.js"></script>
+		<script src="lib/split-1.0.7.js"></script>
 		<script src="bin/fem.js"></script>
 		<script>
 			window.onload = function () {
@@ -14,16 +15,20 @@
 		<div id="edit">
 			<div id="canvas">
 			</div>
-			<div id="actions">
-				<div class="action_button" id="draw-button">DRAW</div>
-				<div class="action_button" id="fixed-button">FIXED</div>
-				<div class="action_button" id="pin-button">PIN</div>
-				<div class="action_button" id="roller-button">ROLLER</div>
-				<div class="action_button" id="force-button">FORCE</div>
-				<div class="action_button" id="solve-button">SOLVE</div>
+			<div id="hud">
+				<div id="actions">
+					<div class="action_button" id="draw-button">DRAW</div>
+					<div class="action_button" id="fixed-button">FIXED</div>
+					<div class="action_button" id="pin-button">PIN</div>
+					<div class="action_button" id="roller-button">ROLLER</div>
+					<div class="action_button" id="force-button">FORCE</div>
+					<div class="action_button" id="solve-button">SOLVE</div>
+				</div>
+				<div id="sidebar">
+				</div>
 			</div>
-			<div id="sidebar">
-			</div>
+		</div>
+		<div id="info">
 		</div>
 	</body>
 </html>

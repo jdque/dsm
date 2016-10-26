@@ -242,37 +242,34 @@ var DisplayComponent = function () {
 	function onDeleteObject(ev) {
 		var object = ev.object;
 
-		if (object.name() === Interactables.NodeCircle.Name) {
-			var node = graphRenderer.getGraphNode(object.getParent());
-			graph.removeNode(node);
-			transientRenderer.setBoundingBox(null);
-			transientRenderer.redraw();
-		}
-		else if (object instanceof Interactables.LinkLine) {
-			var link = graphRenderer.getGraphLink(object);
-			graph.removeLink(link);
-			transientRenderer.setBoundingBox(null);
-			transientRenderer.redraw();
-		}
-		else if (object instanceof Interactables.Force) {
-			var force = graphRenderer.getGraphForce(object);
-			var node = force.parentNode;
-			node.forces.splice(node.forces.indexOf(force), 1);
-			graph.updateNode(node, {forces: node.forces});
-			transientRenderer.setBoundingBox(null);
-			transientRenderer.redraw();
-		}
-		else if (object instanceof Interactables.Support) {
-			var support = graphRenderer.getGraphSupport(object);
-			var node = support.parentNode;
-			support.freedom = [true, true, true];
-			support.rotation = 0;
-			graph.updateNode(node, {
-				support: support
-			});
-			transientRenderer.setBoundingBox(null);
-			transientRenderer.redraw();
-		}
+		switch (object.name()) {
+			case Interactables.NodeCircle.Name:
+				var node = graphRenderer.getGraphNode(object.getParent());
+				graph.removeNode(node);
+				break;
+			case Interactables.LinkLine.Name:
+				var link = graphRenderer.getGraphLink(object);
+				graph.removeLink(link);
+				break;
+			case Interactables.Force.Name:
+				var force = graphRenderer.getGraphForce(object);
+				var node = force.parentNode;
+				node.forces.splice(node.forces.indexOf(force), 1);
+				graph.updateNode(node, {forces: node.forces});
+				break;
+			case Interactables.Support.Name:
+				var support = graphRenderer.getGraphSupport(object);
+				var node = support.parentNode;
+				support.freedom = [true, true, true];
+				support.rotation = 0;
+				graph.updateNode(node, {
+					support: support
+				});
+				break;
+		};
+
+		transientRenderer.setBoundingBox(null);
+		transientRenderer.redraw();
 	}
 
 	function onSolve(ev) {
@@ -297,8 +294,8 @@ var DisplayComponent = function () {
 
 			stage = new Konva.Stage({
 				container: parent,
-				width: parent.scrollWidth,
-				height: parent.scrollHeight
+				width: 1600,
+				height: 1600
 			});
 
 			var gridLayer = new Konva.Layer();
@@ -337,6 +334,11 @@ var DisplayComponent = function () {
 			graphRenderer.redraw();
 
 			resultRenderer = new Renderers.ResultGraphRenderer(objectLayer, graphToDisplayPos);
+
+			window.setTimeout(function () {
+				parent.scrollTop = parent.scrollHeight / 2 - parent.offsetHeight / 2;
+				parent.scrollLeft = parent.scrollWidth / 2 - parent.offsetWidth / 2;
+			}, 0);
 
 			parent.addEventListener("mousedown", function (e) {
 				if (document.activeElement !== parent)
