@@ -1,3 +1,3 @@
 module.exports = {
-	Solver: require('./solver')
+    Solver: require('./solver')
 };

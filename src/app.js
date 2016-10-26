@@ -9,38 +9,38 @@ var SidebarComponent = require('./components/sidebar_component');
 var testData = require('./test_data');
 
 function run() {
-	var graph = Graph.fromJSON(testData.test3);
-	var mainSelection = new SelectionSet();
-	var appActions = new Notifier();
-	var appState = new StateManager(['selection', 'draw']);
+    var graph = Graph.fromJSON(testData.test3);
+    var mainSelection = new SelectionSet();
+    var appActions = new Notifier();
+    var appState = new StateManager(['selection', 'draw']);
 
-	var displayComponent = DisplayComponent.create(document.getElementById('canvas'), {
-		appActions: appActions,
-		appState: appState,
-		graph: graph,
-		mainSelection: mainSelection
-	});
+    var displayComponent = DisplayComponent.create(document.getElementById('canvas'), {
+        appActions: appActions,
+        appState: appState,
+        graph: graph,
+        mainSelection: mainSelection
+    });
 
-	var actionComponent = ActionComponent.create(document.getElementById('actions'), {
-		appActions: appActions,
-		appState: appState,
-		graph: graph,
-		mainSelection: mainSelection
-	});
+    var actionComponent = ActionComponent.create(document.getElementById('actions'), {
+        appActions: appActions,
+        appState: appState,
+        graph: graph,
+        mainSelection: mainSelection
+    });
 
-	var sidebarComponent = SidebarComponent.create(document.getElementById('sidebar'), {
-		appActions: appActions,
-		appState: appState,
-		graph: graph,
-		mainSelection: mainSelection
-	});
+    var sidebarComponent = SidebarComponent.create(document.getElementById('sidebar'), {
+        appActions: appActions,
+        appState: appState,
+        graph: graph,
+        mainSelection: mainSelection
+    });
 
-	Split(['#edit', '#info'], {
-		sizes: [80, 20],
-		direction: 'vertical'
-	});
+    Split(['#edit', '#info'], {
+        sizes: [80, 20],
+        direction: 'vertical'
+    });
 
-	appState.setState('selection');
+    appState.setState('selection');
 }
 
 var App = {
